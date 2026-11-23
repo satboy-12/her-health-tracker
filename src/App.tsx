@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -12,12 +14,15 @@ import { MoodWellnessPage } from './pages/MoodWellnessPage';
 import { NutritionPage } from './pages/NutritionPage';
 import { WaterTrackerPage } from './pages/WaterTrackerPage';
 import { HealthJournalPage } from './pages/HealthJournalPage';
+import { GoogleSheetsPage } from './pages/GoogleSheetsPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -80,6 +85,14 @@ export default function App() {
             }
           />
           <Route
+            path="/sheets"
+            element={
+              <ProtectedRoute>
+                <GoogleSheetsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProtectedRoute>
@@ -90,7 +103,9 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

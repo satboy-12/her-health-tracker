@@ -1,12 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Pencil,
-  PlusCircle,
-  Trash2,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 import { ApiIntegrationBanner } from '../components/ApiIntegrationBanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -18,8 +11,10 @@ import { periodsService } from '../api/services';
 import type { PeriodRecord } from '../types/api';
 import { calculatePeriodEstimate, diffDaysInclusive } from '../utils/healthCalculations';
 import { validatePeriodDates } from '../utils/validation';
+import { PHASE_META, formatLongDate, formatShortDate } from '../utils/uiHelpers';
 
-const PERIOD_SYMPTOMS = ['Cramps', 'Headaches', 'Fatigue', 'Bloating', 'Tender Breasts'];
+const PERIOD_SYMPTOMS = ['Cramps', 'Headache', 'Bloating', 'Fatigue', 'Backache', 'Nausea'];
+const FLOW_OPTIONS: PeriodRecord['flowIntensity'][] = ['Spotting', 'Light', 'Moderate', 'Heavy'];
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function toIsoDate(year: number, monthZeroIdx: number, day: number): string {
@@ -38,8 +33,8 @@ export function PeriodTrackerPage() {
 
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [selectedDay, setSelectedDay] = useState(todayIso);
 
-  // Form state (create or edit)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(todayIso);
   const [endDate, setEndDate] = useState(todayIso);
@@ -79,7 +74,6 @@ export function PeriodTrackerPage() {
   const calendarCells = useMemo(() => {
     const firstDay = new Date(Date.UTC(viewYear, viewMonth, 1));
     const daysInMonth = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
-    // Monday-indexed offset (0 = Mon ... 6 = Sun)
     const offset = (firstDay.getUTCDay() + 6) % 7;
 
     const cells: Array<{ day: number | null; iso: string | null }> = [];
@@ -95,7 +89,7 @@ export function PeriodTrackerPage() {
     return cells;
   }, [viewYear, viewMonth]);
 
-  const monthLabel = new Intl.DateTimeFormat('en-US', {
+  const monthLabel = new Intl.DateTimeFormat('en-GB', {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
@@ -105,6 +99,12 @@ export function PeriodTrackerPage() {
     const next = new Date(Date.UTC(viewYear, viewMonth + delta, 1));
     setViewYear(next.getUTCFullYear());
     setViewMonth(next.getUTCMonth());
+  };
+
+  const jumpToToday = () => {
+    setViewYear(now.getFullYear());
+    setViewMonth(now.getMonth());
+    setSelectedDay(todayIso);
   };
 
   const toggleSymptom = (symptom: string) => {
@@ -131,6 +131,7 @@ export function PeriodTrackerPage() {
     setSelectedSymptoms(record.symptoms ?? []);
     setNotes(record.notes ?? '');
     setFormError(null);
+    document.getElementById('periodform')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,398 +188,508 @@ export function PeriodTrackerPage() {
     }
   };
 
+  const selectedDayRecord = periods.find(
+    (p) => selectedDay >= p.startDate && selectedDay <= p.endDate,
+  );
+  const selectedIsEst =
+    !selectedDayRecord &&
+    estimate &&
+    selectedDay >= estimate.nextPeriodStart &&
+    selectedDay <= estimate.nextPeriodEnd;
+  const selectedIsFertile =
+    !selectedDayRecord &&
+    estimate &&
+    selectedDay >= estimate.fertileWindowStart &&
+    selectedDay <= estimate.fertileWindowEnd;
+  const selectedIsOvu = estimate && selectedDay === estimate.ovulationDate;
+
+  const currentPhaseKey = estimate?.currentPhase ?? 'Uncharted';
+  const currentPhaseMeta = PHASE_META[currentPhaseKey];
+
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-surface-tint flex items-center gap-1.5">
-              <CalendarDays className="w-4 h-4" aria-hidden="true" />
-              <span>Cycle Intelligence</span>
-            </p>
-            <h1 className="font-display text-3xl font-semibold text-on-surface mt-1">
-              Period &amp; Cycle Tracker
-            </h1>
-            <p className="text-sm text-on-surface-variant mt-1">
-              Record period start and end dates, inspect cycle history, and view approximate estimates derived from your logged cycles.
-            </p>
-          </div>
+      {/* Pagehead */}
+      <div>
+        <p className="hhj-eyebrow">Cycle intelligence</p>
+        <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
+          Period and fertility
+        </h1>
+        <p className="text-sm text-[var(--muted)] mt-1 max-w-[60ch]">
+          Log start and end dates, review cycle history, and view approximate estimates synced with your Spring Boot API.
+        </p>
+      </div>
+
+      <ApiIntegrationBanner
+        error={apiError}
+        expectedEndpoint="GET /api/periods"
+        onRetry={loadPeriods}
+        retrying={loading}
+      />
+
+      {/* 4 KPI Stat Cards */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[18px] p-4 sm:p-[18px] flex flex-col gap-1">
+          <span className="text-[0.84rem] text-[var(--muted)]">Average cycle</span>
+          <b className="font-display text-[1.7rem] leading-tight text-[var(--ink)] tabular-nums">
+            {estimate?.averageCycleLength ? `${estimate.averageCycleLength} days` : '—'}
+          </b>
+          <small className="text-[0.8rem] text-[var(--muted)]">
+            {periods.length >= 2 ? `across ${periods.length} logged cycles` : 'needs 2+ cycles'}
+          </small>
         </div>
 
-        <ApiIntegrationBanner
-          error={apiError}
-          expectedEndpoint="GET /api/periods"
-          onRetry={loadPeriods}
-          retrying={loading}
-        />
-
-        {/* Cycle Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5">
-            <span className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-              Avg. Cycle Length
-            </span>
-            <div className="mt-2 flex items-baseline gap-1.5 tabular-nums">
-              <span className="font-display text-2xl font-semibold text-on-surface">
-                {estimate?.averageCycleLength ?? '—'}
-              </span>
-              {estimate?.averageCycleLength != null && (
-                <span className="text-sm text-on-surface-variant">days</span>
-              )}
-            </div>
-            <p className="text-xs text-on-surface-variant mt-2">
-              {periods.length >= 2
-                ? `Computed across ${periods.length} logged cycles`
-                : 'Needs at least 2 logged cycles'}
-            </p>
-          </div>
-
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5">
-            <span className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-              Regularity Score
-            </span>
-            <div className="mt-2 flex items-baseline gap-1.5 tabular-nums">
-              <span className="font-display text-2xl font-semibold text-on-surface">
-                {estimate?.regularityScore ?? '—'}
-              </span>
-              {estimate?.regularityScore != null && (
-                <span className="text-sm text-on-surface-variant">/ 100</span>
-              )}
-            </div>
-            <p className="text-xs text-on-surface-variant mt-2">
-              Derived from cycle length consistency
-            </p>
-          </div>
-
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5">
-            <span className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-              Current Phase
-            </span>
-            <div className="mt-2 font-display text-2xl font-semibold text-on-surface">
-              {estimate?.currentPhase ?? '—'}
-            </div>
-            <p className="text-xs text-on-surface-variant mt-2 tabular-nums">
-              {estimate?.currentCycleDay ? `Cycle Day ${estimate.currentCycleDay}` : 'No active cycle logged'}
-            </p>
-          </div>
-
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5">
-            <span className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-              Approx. Next Period
-            </span>
-            <div className="mt-2 font-display text-2xl font-semibold text-primary tabular-nums">
-              {estimate?.nextPeriodStart ?? '—'}
-            </div>
-            <p className="text-xs text-on-surface-variant mt-2">
-              {estimate
-                ? `Fertile window approx. ${estimate.fertileWindowStart}`
-                : 'Awaiting historical records'}
-            </p>
-          </div>
+        <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[18px] p-4 sm:p-[18px] flex flex-col gap-1">
+          <span className="text-[0.84rem] text-[var(--muted)]">Regularity</span>
+          <b className="font-display text-[1.7rem] leading-tight text-[var(--ink)] tabular-nums">
+            {estimate?.regularityScore != null ? `${estimate.regularityScore} / 100` : '—'}
+          </b>
+          <small className="text-[0.8rem] text-[var(--muted)]">
+            {estimate?.regularityScore == null
+              ? 'needs 3 logged cycles'
+              : estimate.regularityScore >= 85
+              ? 'very regular'
+              : 'variable'}
+          </small>
         </div>
 
-        {/* Calendar + Quick Entry Form */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Monthly Calendar (2 cols) */}
-          <section className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
-              <div className="flex items-center gap-3">
-                <h2 className="font-display text-xl font-semibold text-on-surface">{monthLabel}</h2>
-                <div className="flex items-center bg-surface-container-low rounded-lg p-1">
-                  <button
-                    type="button"
-                    aria-label="Previous month"
-                    onClick={() => changeMonth(-1)}
-                    className="p-1.5 rounded hover:bg-surface-container-high text-on-surface-variant cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Next month"
-                    onClick={() => changeMonth(1)}
-                    className="p-1.5 rounded hover:bg-surface-container-high text-on-surface-variant cursor-pointer"
-                  >
-                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
+        <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[18px] p-4 sm:p-[18px] flex flex-col gap-1">
+          <span className="text-[0.84rem] text-[var(--muted)]">Current phase</span>
+          <b
+            className="font-display text-[1.7rem] leading-tight"
+            style={{ color: currentPhaseMeta.ink }}
+          >
+            {estimate?.currentPhase ?? '—'}
+          </b>
+          <small className="text-[0.8rem] text-[var(--muted)] tabular-nums">
+            {estimate?.currentCycleDay
+              ? `Day ${estimate.currentCycleDay} of ${estimate.averageCycleLength}`
+              : 'log a period to start'}
+          </small>
+        </div>
 
-              <div className="flex items-center gap-4 text-xs text-on-surface-variant">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-primary-container" />
-                  Logged Period
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-tertiary-fixed-dim" />
-                  Approx. Fertile
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-secondary-fixed" />
-                  Approx. Next Period
-                </span>
-              </div>
+        <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[18px] p-4 sm:p-[18px] flex flex-col gap-1">
+          <span className="text-[0.84rem] text-[var(--muted)]">Next period</span>
+          <b className="font-display text-[1.7rem] leading-tight text-[var(--plum)] tabular-nums">
+            {estimate?.nextPeriodStart ? formatShortDate(estimate.nextPeriodStart) : '—'}
+          </b>
+          <small className="text-[0.8rem] text-[var(--muted)]">
+            {estimate
+              ? `Fertile ${formatShortDate(estimate.fertileWindowStart)}`
+              : 'awaiting records'}
+          </small>
+        </div>
+      </div>
+
+      {/* Main Grid: Calendar (1.45fr) + Selected Day & Log Form (1fr) */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.45fr_1fr] gap-5 items-start">
+        {/* Monthly Calendar */}
+        <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+              {monthLabel}
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={jumpToToday}
+                className="min-h-[34px] px-3 py-1 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--ink)] cursor-pointer"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                aria-label="Previous month"
+                onClick={() => changeMonth(-1)}
+                className="min-h-[34px] px-2.5 py-1 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-[var(--ink)] cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="Next month"
+                onClick={() => changeMonth(1)}
+                className="min-h-[34px] px-2.5 py-1 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-[var(--ink)] cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" aria-hidden="true" />
+              </button>
             </div>
+          </div>
 
-            <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-medium text-on-surface-variant uppercase">
-              {WEEKDAYS.map((d) => (
-                <div key={d}>{d}</div>
-              ))}
-            </div>
+          <div className="grid grid-cols-7 gap-1.5">
+            {WEEKDAYS.map((d) => (
+              <div
+                key={d}
+                className="text-[0.72rem] text-center text-[var(--muted)] font-bold tracking-[0.06em] py-1"
+              >
+                {d}
+              </div>
+            ))}
 
-            <div className="grid grid-cols-7 gap-2">
-              {calendarCells.map((cell, idx) => {
-                if (!cell.day || !cell.iso) {
-                  return <div key={`empty-${idx}`} className="h-20 rounded-xl bg-surface-container-low/40" />;
-                }
-
-                const isLoggedPeriod = periods.some(
-                  (p) => cell.iso! >= p.startDate && cell.iso! <= p.endDate,
-                );
-                const isEstimatedPeriod =
-                  !isLoggedPeriod &&
-                  estimate &&
-                  cell.iso >= estimate.nextPeriodStart &&
-                  cell.iso <= estimate.nextPeriodEnd;
-                const isFertile =
-                  !isLoggedPeriod &&
-                  estimate &&
-                  cell.iso >= estimate.fertileWindowStart &&
-                  cell.iso <= estimate.fertileWindowEnd;
-                const isToday = cell.iso === todayIso;
-
-                let cellStyle = 'bg-surface-container-low text-on-surface hover:bg-surface-container';
-                let tagText = '';
-                if (isLoggedPeriod) {
-                  cellStyle = 'bg-primary-container text-on-primary-container';
-                  tagText = 'Period';
-                } else if (isFertile) {
-                  cellStyle = 'bg-tertiary-fixed text-on-tertiary-fixed';
-                  tagText = cell.iso === estimate?.ovulationDate ? 'Ovulation' : 'Fertile';
-                } else if (isEstimatedPeriod) {
-                  cellStyle = 'bg-secondary-fixed text-on-secondary-fixed';
-                  tagText = 'Est.';
-                }
-
+            {calendarCells.map((cell, idx) => {
+              if (!cell.day || !cell.iso) {
                 return (
-                  <button
-                    key={cell.iso}
-                    type="button"
-                    onClick={() => {
+                  <div
+                    key={`empty-${idx}`}
+                    className="aspect-[1/0.92] min-h-[42px] rounded-[12px] bg-[var(--surface2)] opacity-35"
+                  />
+                );
+              }
+
+              const periodMatch = periods.find(
+                (p) => cell.iso! >= p.startDate && cell.iso! <= p.endDate,
+              );
+              const isEstPeriod =
+                !periodMatch &&
+                estimate &&
+                cell.iso >= estimate.nextPeriodStart &&
+                cell.iso <= estimate.nextPeriodEnd;
+              const isFertile =
+                !periodMatch &&
+                estimate &&
+                cell.iso >= estimate.fertileWindowStart &&
+                cell.iso <= estimate.fertileWindowEnd;
+              const isOvu = !periodMatch && estimate && cell.iso === estimate.ovulationDate;
+              const isToday = cell.iso === todayIso;
+              const isSel = cell.iso === selectedDay;
+
+              let bgClass = 'bg-[var(--surface2)] text-[var(--ink)] border-transparent';
+              let label = '';
+              if (periodMatch) {
+                bgClass = 'bg-[var(--c-men)] text-white border-transparent';
+                label = periodMatch.startDate === cell.iso ? 'Start' : 'Period';
+              } else if (isEstPeriod) {
+                bgClass =
+                  'bg-[var(--fol-soft)] text-[var(--fol-ink)] border-[1.5px] border-dashed border-[var(--c-fol)]';
+                label = cell.iso === estimate?.nextPeriodStart ? 'Est.' : '';
+              } else if (isFertile) {
+                bgClass = 'bg-[var(--ovu-soft)] text-[var(--ovu-ink)] border-transparent';
+                label = isOvu ? 'Ovul.' : 'Fertile';
+              }
+
+              return (
+                <button
+                  key={cell.iso}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDay(cell.iso!);
+                    if (!editingId) {
                       setStartDate(cell.iso!);
                       setEndDate(cell.iso!);
-                    }}
-                    className={`h-20 p-2 rounded-xl flex flex-col justify-between text-left transition-colors cursor-pointer ${cellStyle} ${
-                      isToday ? 'ring-2 ring-primary' : ''
-                    }`}
-                  >
-                    <span className="text-xs font-semibold tabular-nums">{cell.day}</span>
-                    {tagText && <span className="text-[10px] font-medium truncate">{tagText}</span>}
-                  </button>
-                );
-              })}
-            </div>
+                    }
+                  }}
+                  aria-label={`${formatLongDate(cell.iso)}${periodMatch ? ', period' : ''}`}
+                  className={`relative aspect-[1/0.92] min-h-[44px] rounded-[12px] border flex flex-col items-start justify-between p-1.5 text-left font-semibold text-sm tabular-nums cursor-pointer transition-all ${bgClass} ${
+                    isOvu ? 'shadow-[inset_0_0_0_2px_var(--c-ovu)]' : ''
+                  } ${isToday ? '!border-2 !border-[var(--ink)]' : ''} ${
+                    isSel ? 'outline-[3px] outline-[var(--plum)] outline-offset-1' : ''
+                  }`}
+                >
+                  <span>{cell.day}</span>
+                  {label ? (
+                    <small className="text-[0.62rem] font-bold leading-none opacity-95 hidden sm:inline">
+                      {label}
+                    </small>
+                  ) : (
+                    <span />
+                  )}
+                  {periodMatch && (
+                    <i className="absolute right-1.5 top-1.5 w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap gap-3.5 text-xs text-[var(--muted)] mt-3.5">
+            <span className="inline-flex items-center gap-1.5">
+              <i className="w-3 h-3 rounded-[4px] bg-[var(--c-men)] inline-block" />
+              Period
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <i className="w-3 h-3 rounded-[4px] bg-[var(--fol-soft)] border-[1.5px] border-dashed border-[var(--c-fol)] inline-block" />
+              Predicted
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <i className="w-3 h-3 rounded-[4px] bg-[var(--ovu-soft)] inline-block" />
+              Fertile window
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <i className="w-3 h-3 rounded-[4px] shadow-[inset_0_0_0_2px_var(--c-ovu)] inline-block" />
+              Ovulation
+            </span>
+          </div>
+        </section>
+
+        {/* Right Stack: Selected Day + Log Form */}
+        <div className="flex flex-col gap-5">
+          {/* Selected Day Summary */}
+          <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+            <header className="flex items-start justify-between gap-2 mb-3">
+              <div>
+                <h2 className="font-display font-bold text-lg text-[var(--ink)]">
+                  {formatLongDate(selectedDay)}
+                </h2>
+                <p className="text-xs text-[var(--muted)]">
+                  {selectedDay === todayIso
+                    ? 'Today'
+                    : selectedDay > todayIso
+                    ? 'Upcoming'
+                    : 'Past day'}
+                </p>
+              </div>
+              {selectedDayRecord && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[var(--men-soft)] text-[var(--men-ink)]">
+                  Period day
+                </span>
+              )}
+            </header>
+
+            {selectedDayRecord || selectedIsEst || selectedIsFertile || selectedIsOvu ? (
+              <ul className="divide-y divide-[var(--line)] text-sm">
+                {selectedDayRecord && (
+                  <li className="py-2 flex items-center justify-between">
+                    <span>Period logged ({selectedDayRecord.flowIntensity})</span>
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(selectedDayRecord)}
+                      className="text-xs font-semibold text-[var(--plum)] hover:underline cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                  </li>
+                )}
+                {selectedIsEst && <li className="py-2">Predicted period day</li>}
+                {selectedIsFertile && <li className="py-2">Approx. fertile window</li>}
+                {selectedIsOvu && <li className="py-2">Estimated ovulation date</li>}
+              </ul>
+            ) : (
+              <p className="text-sm text-[var(--muted)]">No cycle events recorded on this date.</p>
+            )}
+
+            {selectedDay <= todayIso && (
+              <div className="mt-3.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(null);
+                    setStartDate(selectedDay);
+                    setEndDate(selectedDay);
+                  }}
+                  className="min-h-[34px] px-3 py-1.5 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--ink)] cursor-pointer"
+                >
+                  Use {formatShortDate(selectedDay)} as start date
+                </button>
+              </div>
+            )}
           </section>
 
-          {/* Log / Edit Form */}
-          <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="font-display text-lg font-semibold text-on-surface">
-                  {editingId ? 'Edit Cycle Entry' : 'Log Period Dates'}
-                </h2>
-                <PlusCircle className="w-5 h-5 text-primary" aria-hidden="true" />
-              </div>
-              <p className="text-xs text-on-surface-variant mb-5">
-                Click any date on the calendar or enter dates manually to save via{' '}
-                <code className="font-mono">{editingId ? 'PUT /api/periods/:id' : 'POST /api/periods'}</code>.
+          {/* Log / Edit Period Form */}
+          <section id="periodform" className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+            <header className="mb-4">
+              <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                {editingId ? 'Edit period' : 'Log a period'}
+              </h2>
+              <p className="text-xs text-[var(--muted)] mt-0.5">
+                Saved directly to{' '}
+                <code className="font-mono">
+                  {editingId ? 'PUT /api/periods/:id' : 'POST /api/periods'}
+                </code>
               </p>
+            </header>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="period-start" className="block text-xs font-medium text-on-surface-variant mb-1">
-                    Period Start Date
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="p-start" className="text-[0.84rem] font-semibold text-[var(--muted)]">
+                    First day
                   </label>
                   <input
-                    id="period-start"
+                    id="p-start"
                     type="date"
+                    max={todayIso}
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     required
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
                   />
                 </div>
-
-                <div>
-                  <label htmlFor="period-end" className="block text-xs font-medium text-on-surface-variant mb-1">
-                    Period End Date
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="p-end" className="text-[0.84rem] font-semibold text-[var(--muted)]">
+                    Last day
                   </label>
                   <input
-                    id="period-end"
+                    id="p-end"
                     type="date"
+                    max={todayIso}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     required
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full min-h-[44px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label htmlFor="period-flow" className="block text-xs font-medium text-on-surface-variant mb-1">
-                    Flow Intensity
-                  </label>
-                  <select
-                    id="period-flow"
-                    value={flowIntensity}
-                    onChange={(e) => setFlowIntensity(e.target.value as PeriodRecord['flowIntensity'])}
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  >
-                    <option value="Spotting">Spotting</option>
-                    <option value="Light">Light</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Heavy">Heavy</option>
-                  </select>
-                </div>
-
-                <div>
-                  <span className="block text-xs font-medium text-on-surface-variant mb-2">
-                    Associated Symptoms
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {PERIOD_SYMPTOMS.map((symptom) => {
-                      const active = selectedSymptoms.includes(symptom);
-                      return (
-                        <button
-                          key={symptom}
-                          type="button"
-                          onClick={() => toggleSymptom(symptom)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                            active
-                              ? 'bg-primary text-on-primary border-primary'
-                              : 'bg-surface-container-low text-on-surface border-outline-variant hover:bg-surface-container'
-                          }`}
-                        >
-                          {symptom}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="period-notes" className="block text-xs font-medium text-on-surface-variant mb-1">
-                    Notes (optional)
-                  </label>
-                  <textarea
-                    id="period-notes"
-                    rows={2}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Optional cycle observations..."
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-                  />
-                </div>
-
-                {formError && (
-                  <p className="text-xs text-error" role="alert">
-                    {formError}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 bg-primary hover:bg-primary-container text-on-primary py-2.5 px-4 rounded-xl text-sm font-medium transition-colors cursor-pointer disabled:opacity-60"
-                  >
-                    {submitting ? 'Saving...' : editingId ? 'Update Entry' : 'Save Period Entry'}
-                  </button>
-                  {editingId && (
-                    <button
-                      type="button"
-                      onClick={resetForm}
-                      className="px-4 py-2.5 rounded-xl bg-surface-container-high text-on-surface text-sm font-medium cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </section>
-        </div>
-
-        {/* Cycle History Table */}
-        <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
-          <div className="mb-4">
-            <h2 className="font-display text-lg font-semibold text-on-surface">Cycle History</h2>
-            <p className="text-xs text-on-surface-variant">
-              Create, edit, or delete logged menstrual cycles synced with your Spring Boot database.
-            </p>
-          </div>
-
-          {loading ? (
-            <LoadingSkeleton rows={3} />
-          ) : periods.length === 0 ? (
-            <EmptyStateCard
-              title="No Cycle Records Logged"
-              description="Logged period start and end dates from GET /api/periods will appear here with calculated durations and actions."
-              endpoint="GET /api/periods"
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="text-xs font-medium text-on-surface-variant border-b border-outline-variant">
-                    <th className="py-3 px-3">Start Date</th>
-                    <th className="py-3 px-3">End Date</th>
-                    <th className="py-3 px-3">Duration</th>
-                    <th className="py-3 px-3">Flow</th>
-                    <th className="py-3 px-3">Symptoms</th>
-                    <th className="py-3 px-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm divide-y divide-outline-variant/60">
-                  {periods.map((record) => {
-                    const duration = diffDaysInclusive(record.startDate, record.endDate);
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[0.84rem] font-semibold text-[var(--muted)]">Flow</span>
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Flow intensity">
+                  {FLOW_OPTIONS.map((flow) => {
+                    const active = flowIntensity === flow;
                     return (
-                      <tr key={record.id} className="hover:bg-surface-container-low/60">
-                        <td className="py-3 px-3 font-medium tabular-nums">{record.startDate}</td>
-                        <td className="py-3 px-3 tabular-nums">{record.endDate}</td>
-                        <td className="py-3 px-3 tabular-nums">{duration} days</td>
-                        <td className="py-3 px-3">{record.flowIntensity}</td>
-                        <td className="py-3 px-3 text-on-surface-variant">
-                          {record.symptoms.length > 0 ? record.symptoms.join(', ') : '—'}
-                        </td>
-                        <td className="py-3 px-3 text-right">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              type="button"
-                              aria-label={`Edit cycle starting ${record.startDate}`}
-                              onClick={() => handleEdit(record)}
-                              className="p-1.5 rounded-lg hover:bg-surface-container-high text-on-surface-variant cursor-pointer"
-                            >
-                              <Pencil className="w-4 h-4" aria-hidden="true" />
-                            </button>
-                            <button
-                              type="button"
-                              aria-label={`Delete cycle starting ${record.startDate}`}
-                              onClick={() => setDeleteTarget(record)}
-                              className="p-1.5 rounded-lg hover:bg-error-container text-error cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" aria-hidden="true" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                      <button
+                        key={flow}
+                        type="button"
+                        onClick={() => setFlowIntensity(flow)}
+                        aria-pressed={active}
+                        className={`min-h-[38px] px-3.5 py-1.5 rounded-full border text-sm transition-colors cursor-pointer ${
+                          active
+                            ? 'bg-[var(--plum)] text-[var(--plum-ink)] border-[var(--plum)] font-semibold'
+                            : 'bg-[var(--surface)] text-[var(--ink)] border-[var(--line)] hover:bg-[var(--surface2)] font-medium'
+                        }`}
+                      >
+                        {flow}
+                      </button>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[0.84rem] font-semibold text-[var(--muted)]">Symptoms</span>
+                <div className="flex flex-wrap gap-2">
+                  {PERIOD_SYMPTOMS.map((symptom) => {
+                    const active = selectedSymptoms.includes(symptom);
+                    return (
+                      <button
+                        key={symptom}
+                        type="button"
+                        onClick={() => toggleSymptom(symptom)}
+                        aria-pressed={active}
+                        className={`min-h-[38px] px-3.5 py-1.5 rounded-full border text-sm transition-colors cursor-pointer ${
+                          active
+                            ? 'bg-[var(--plum)] text-[var(--plum-ink)] border-[var(--plum)] font-semibold'
+                            : 'bg-[var(--surface)] text-[var(--ink)] border-[var(--line)] hover:bg-[var(--surface2)] font-medium'
+                        }`}
+                      >
+                        {symptom}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="p-notes" className="text-[0.84rem] font-semibold text-[var(--muted)]">
+                  Notes (optional)
+                </label>
+                <textarea
+                  id="p-notes"
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Optional cycle observations..."
+                  className="w-full px-3 py-2.5 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)] resize-y"
+                />
+              </div>
+
+              {formError && (
+                <p className="text-xs font-medium text-[var(--bad)]" role="alert">
+                  {formError}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2.5 pt-1">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="min-h-[42px] px-[18px] py-2 rounded-[12px] hhj-btn-primary text-sm font-semibold cursor-pointer disabled:opacity-60"
+                >
+                  {submitting ? 'Saving...' : editingId ? 'Update period' : 'Save period'}
+                </button>
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="min-h-[42px] px-4 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-sm font-semibold text-[var(--ink)] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </section>
+        </div>
       </div>
+
+      {/* Cycle History Table */}
+      <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+        <header className="mb-4">
+          <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+            Cycle history
+          </h2>
+          <p className="text-sm text-[var(--muted)] mt-0.5">
+            Logged menstrual cycles synced with your Spring Boot API.
+          </p>
+        </header>
+
+        {loading ? (
+          <LoadingSkeleton rows={3} />
+        ) : periods.length === 0 ? (
+          <EmptyStateCard
+            title="No periods logged yet"
+            description="Logged period start and end dates from GET /api/periods will appear here."
+            endpoint="GET /api/periods"
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left border-collapse text-sm">
+              <thead>
+                <tr className="text-[0.76rem] uppercase tracking-[0.06em] text-[var(--muted)] border-b border-[var(--line)]">
+                  <th className="py-2 px-2.5">Start</th>
+                  <th className="py-2 px-2.5">End</th>
+                  <th className="py-2 px-2.5">Length</th>
+                  <th className="py-2 px-2.5">Flow</th>
+                  <th className="py-2 px-2.5">Symptoms</th>
+                  <th className="py-2 px-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--line)] tabular-nums">
+                {periods.map((record) => {
+                  const duration = diffDaysInclusive(record.startDate, record.endDate);
+                  return (
+                    <tr key={record.id} className="hover:bg-[var(--surface2)]/40">
+                      <td className="py-2.5 px-2.5 font-semibold">{record.startDate}</td>
+                      <td className="py-2.5 px-2.5">{record.endDate}</td>
+                      <td className="py-2.5 px-2.5">{duration} d</td>
+                      <td className="py-2.5 px-2.5">{record.flowIntensity}</td>
+                      <td className="py-2.5 px-2.5 text-[var(--muted)]">
+                        {record.symptoms.length > 0 ? record.symptoms.join(', ') : '—'}
+                      </td>
+                      <td className="py-2.5 px-2.5 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          aria-label={`Edit cycle starting ${record.startDate}`}
+                          onClick={() => handleEdit(record)}
+                          className="p-1.5 rounded-[10px] text-[var(--muted)] hover:bg-[var(--surface2)] hover:text-[var(--ink)] cursor-pointer mr-1"
+                        >
+                          <Pencil className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete cycle starting ${record.startDate}`}
+                          onClick={() => setDeleteTarget(record)}
+                          className="p-1.5 rounded-[10px] text-[var(--bad)] hover:bg-[var(--bad-soft)] cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

@@ -28,32 +28,32 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-inverse-surface/40 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
     >
-      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl max-w-md w-full p-6 shadow-xl">
+      <div className="hhj-card max-w-md w-full p-6">
         <div className="flex items-start justify-between gap-4 mb-3">
-          <h3 id="confirm-dialog-title" className="text-lg font-semibold text-on-surface">
+          <h3 id="confirm-dialog-title" className="font-display text-lg font-bold text-[var(--ink)]">
             {title}
           </h3>
           <button
             type="button"
             onClick={onCancel}
             aria-label="Close dialog"
-            className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high cursor-pointer"
+            className="p-1.5 rounded-lg text-[var(--muted)] hover:bg-[var(--surface2)] cursor-pointer"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
-        <p className="text-sm text-on-surface-variant mb-6 leading-relaxed">{description}</p>
-        <div className="flex items-center justify-end gap-3">
+        <p className="text-sm text-[var(--muted)] mb-6 leading-relaxed">{description}</p>
+        <div className="flex items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-sm font-medium hover:bg-surface-container-highest transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-[var(--ink)] text-sm font-semibold transition-colors cursor-pointer"
           >
             {cancelLabel}
           </button>
@@ -61,10 +61,10 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-60 ${
+            className={`px-4 py-2 rounded-[12px] text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 ${
               destructive
-                ? 'bg-error text-on-error hover:opacity-90'
-                : 'bg-primary text-on-primary hover:bg-primary-container'
+                ? 'bg-[var(--bad)] text-white hover:brightness-110'
+                : 'hhj-btn-primary'
             }`}
           >
             {busy ? 'Processing...' : confirmLabel}

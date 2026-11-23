@@ -1,14 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Coffee,
-  Cookie,
-  Flame,
-  Plus,
-  Sun,
-  Trash2,
-  Utensils,
-  X,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 import { ApiIntegrationBanner } from '../components/ApiIntegrationBanner';
 import { EmptyStateCard } from '../components/EmptyStateCard';
@@ -17,18 +8,11 @@ import { ToastBanner } from '../components/ToastBanner';
 import { ApiError } from '../api/client';
 import { nutritionService } from '../api/services';
 import type { MealCategory, NutritionSummaryResponse } from '../types/api';
-import { sumNutritionMacros } from '../utils/healthCalculations';
+import { addDaysIso, sumNutritionMacros } from '../utils/healthCalculations';
 import { validateMealInput } from '../utils/validation';
+import { COMMON_FOODS, formatLongDate, formatShortDate } from '../utils/uiHelpers';
 
-const MEAL_SECTIONS: Array<{
-  category: MealCategory;
-  icon: React.ComponentType<{ className?: string }>;
-}> = [
-  { category: 'Breakfast', icon: Sun },
-  { category: 'Lunch', icon: Utensils },
-  { category: 'Dinner', icon: Coffee },
-  { category: 'Snacks', icon: Cookie },
-];
+const SLOTS: MealCategory[] = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
 
 export function NutritionPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -38,11 +22,9 @@ export function NutritionPage() {
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<ApiError | string | null>(null);
 
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
   const [mealType, setMealType] = useState<MealCategory>('Breakfast');
   const [foodName, setFoodName] = useState('');
-  const [portion, setPortion] = useState('');
+  const [portion, setPortion] = useState('1 serving');
   const [calories, setCalories] = useState('');
   const [proteinGrams, setProteinGrams] = useState('');
   const [carbsGrams, setCarbsGrams] = useState('');
@@ -80,17 +62,22 @@ export function NutritionPage() {
     fiberGrams: 0,
   };
 
-  const openModalFor = (category: MealCategory) => {
-    setMealType(category);
-    setFoodName('');
-    setPortion('');
-    setCalories('');
-    setProteinGrams('');
-    setCarbsGrams('');
-    setFatGrams('');
-    setFiberGrams('');
+  const shiftDate = (delta: number) => {
+    const next = addDaysIso(selectedDate, delta);
+    if (next <= todayIso) setSelectedDate(next);
+  };
+
+  const handleQuickFill = (presetIndex: number) => {
+    const f = COMMON_FOODS[presetIndex];
+    if (!f) return;
+    setFoodName(f.foodName);
+    setPortion(f.portion);
+    setCalories(String(f.calories));
+    setProteinGrams(String(f.proteinGrams));
+    setCarbsGrams(String(f.carbsGrams));
+    setFatGrams(String(f.fatGrams));
+    setFiberGrams(String(f.fiberGrams));
     setFormErrors({});
-    setModalOpen(true);
   };
 
   const handleCreateMeal = async (e: React.FormEvent) => {
@@ -117,7 +104,12 @@ export function NutritionPage() {
         fatGrams: Number(fatGrams) || 0,
         fiberGrams: Number(fiberGrams) || 0,
       });
-      setModalOpen(false);
+      setFoodName('');
+      setCalories('');
+      setProteinGrams('');
+      setCarbsGrams('');
+      setFatGrams('');
+      setFiberGrams('');
       setToast({ message: `Added "${foodName.trim()}" to ${mealType}.`, variant: 'success' });
       await loadNutrition();
     } catch (err) {
@@ -142,420 +134,460 @@ export function NutritionPage() {
     }
   };
 
-  const macroCards = [
+  const macroTiles = [
+    {
+      label: 'Calories',
+      val: Math.round(totals.calories),
+      goal: targets.calories,
+      unit: 'kcal',
+      color: 'var(--plum)',
+    },
     {
       label: 'Protein',
-      current: totals.proteinGrams,
-      target: targets.proteinGrams,
-      barColor: 'bg-primary',
+      val: Math.round(totals.proteinGrams),
+      goal: targets.proteinGrams,
+      unit: 'g',
+      color: 'var(--c-men)',
     },
     {
-      label: 'Complex Carbs',
-      current: totals.carbsGrams,
-      target: targets.carbsGrams,
-      barColor: 'bg-tertiary',
+      label: 'Carbs',
+      val: Math.round(totals.carbsGrams),
+      goal: targets.carbsGrams,
+      unit: 'g',
+      color: 'var(--c-ovu)',
     },
     {
-      label: 'Healthy Fats',
-      current: totals.fatGrams,
-      target: targets.fatGrams,
-      barColor: 'bg-secondary',
-    },
-    {
-      label: 'Fiber',
-      current: totals.fiberGrams,
-      target: targets.fiberGrams,
-      barColor: 'bg-tertiary-container',
+      label: 'Fat',
+      val: Math.round(totals.fatGrams),
+      goal: targets.fatGrams,
+      unit: 'g',
+      color: 'var(--c-lut)',
     },
   ];
 
+  const weeklyTotals = summary?.weeklyTotals ?? [];
+  const maxWeeklyKcal = Math.max(targets.calories || 2000, ...weeklyTotals.map((w) => w.calories)) * 1.12;
+
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-surface-tint">
-              Daily Fuel &amp; Balance
-            </p>
-            <h1 className="font-display text-3xl font-semibold text-on-surface mt-1">
-              Nutrition &amp; Diet
-            </h1>
-          </div>
+      {/* Pagehead with date stepper */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className="hhj-eyebrow">Daily fuel</p>
+          <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
+            Nutrition
+          </h1>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="date"
-              aria-label="Food diary date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-surface-container-low border border-outline-variant px-3 py-2 rounded-xl text-sm text-on-surface"
-            />
-            <div className="flex items-center gap-2.5 bg-surface-container-low border border-outline-variant px-4 py-2 rounded-xl">
-              <Flame className="w-4 h-4 text-primary" aria-hidden="true" />
-              <div className="text-xs">
-                <span className="text-on-surface-variant block">Daily Calorie Target</span>
-                <span className="font-semibold text-on-surface tabular-nums">
-                  {totals.calories.toLocaleString()} /{' '}
-                  {targets.calories > 0 ? `${targets.calories.toLocaleString()} kcal` : '— kcal'}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Previous day"
+            onClick={() => shiftDate(-1)}
+            className="min-h-[36px] px-2.5 py-1 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-[var(--ink)] cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <strong className="sm:min-w-[10.5rem] text-center text-sm font-bold text-[var(--ink)] tabular-nums">
+            {selectedDate === todayIso ? `Today, ${formatLongDate(selectedDate)}` : formatLongDate(selectedDate)}
+          </strong>
+          <button
+            type="button"
+            aria-label="Next day"
+            disabled={selectedDate >= todayIso}
+            onClick={() => shiftDate(1)}
+            className="min-h-[36px] px-2.5 py-1 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-[var(--ink)] cursor-pointer disabled:opacity-40"
+          >
+            <ChevronRight className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <ApiIntegrationBanner
+        error={apiError}
+        expectedEndpoint={`GET /api/nutrition?date=${selectedDate}`}
+        onRetry={loadNutrition}
+        retrying={loading}
+      />
+
+      {/* 4 Macro Stat Cards */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {macroTiles.map((tile) => {
+          const pct = tile.goal > 0 ? Math.min(100, Math.round((tile.val / tile.goal) * 100)) : 0;
+          return (
+            <div
+              key={tile.label}
+              className="bg-[var(--surface)] border border-[var(--line)] rounded-[18px] p-4 sm:p-[18px] flex flex-col gap-2"
+            >
+              <span className="text-[0.84rem] text-[var(--muted)]">{tile.label}</span>
+              <b className="font-display text-[1.5rem] leading-tight text-[var(--ink)] tabular-nums">
+                {tile.val}{' '}
+                <span className="text-sm font-medium text-[var(--muted)]">
+                  / {tile.goal > 0 ? `${tile.goal} ${tile.unit}` : `— ${tile.unit}`}
                 </span>
+              </b>
+              <div className="h-2.5 rounded-full bg-[var(--surface2)] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct}%`, backgroundColor: tile.color }}
+                />
               </div>
             </div>
-          </div>
-        </div>
+          );
+        })}
+      </div>
 
-        <ApiIntegrationBanner
-          error={apiError}
-          expectedEndpoint={`GET /api/nutrition?date=${selectedDate}`}
-          onRetry={loadNutrition}
-          retrying={loading}
-        />
-
-        {/* Macro Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {macroCards.map((macro) => {
-            const pct = macro.target > 0 ? Math.min(100, Math.round((macro.current / macro.target) * 100)) : 0;
-            return (
-              <div
-                key={macro.label}
-                className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-on-surface-variant">{macro.label}</span>
-                  <span className="text-xs text-on-surface-variant tabular-nums">{pct}%</span>
-                </div>
-                <div className="font-display text-2xl font-semibold text-on-surface tabular-nums">
-                  {macro.current}g{' '}
-                  <span className="text-sm font-normal text-on-surface-variant">
-                    / {macro.target > 0 ? `${macro.target}g` : '— g'}
-                  </span>
-                </div>
-                <div className="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
-                  <div
-                    className={`${macro.barColor} h-full rounded-full transition-all`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Food Diary & Guidance */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl font-semibold text-on-surface">Food Diary</h2>
-              <button
-                type="button"
-                onClick={() => openModalFor('Breakfast')}
-                className="bg-primary hover:bg-primary-container text-on-primary px-4 py-2 rounded-xl text-sm font-medium inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" aria-hidden="true" />
-                Log Meal Item
-              </button>
-            </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[1.45fr_1fr] gap-5 items-start">
+        {/* Left: Meals Slots + Inline Add Food Card */}
+        <div className="flex flex-col gap-5">
+          <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+            <header className="mb-3">
+              <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">Meals</h2>
+              <p className="text-xs text-[var(--muted)] mt-0.5 tabular-nums">
+                Fiber logged: {Math.round(totals.fiberGrams)} of{' '}
+                {targets.fiberGrams > 0 ? `${targets.fiberGrams} g` : '28 g'}
+              </p>
+            </header>
 
             {loading ? (
               <LoadingSkeleton rows={4} />
             ) : (
-              <div className="space-y-4">
-                {MEAL_SECTIONS.map(({ category, icon: Icon }) => {
-                  const items = meals.filter((m) => m.mealType === category);
-                  const categoryKcal = items.reduce((sum, item) => sum + item.calories, 0);
+              <div>
+                {SLOTS.map((slot) => {
+                  const items = meals.filter((m) => m.mealType === slot);
+                  const slotKcal = Math.round(items.reduce((s, m) => s + m.calories, 0));
                   return (
-                    <section
-                      key={category}
-                      className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-primary" aria-hidden="true" />
-                          <h3 className="font-display text-base font-semibold text-on-surface">
-                            {category}
-                          </h3>
-                        </div>
-                        <span className="text-xs text-on-surface-variant tabular-nums">
-                          {categoryKcal} kcal
-                        </span>
+                    <div key={slot} className="border-t border-[var(--line)] py-3.5 first:border-t-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="font-display font-bold text-base text-[var(--ink)]">
+                          {slot}{' '}
+                          <span className="text-xs font-medium text-[var(--muted)] tabular-nums ml-1">
+                            {slotKcal} kcal
+                          </span>
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMealType(slot);
+                            document.getElementById('mealform')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }}
+                          className="inline-flex items-center gap-1 min-h-[32px] px-2.5 py-1 rounded-[10px] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--plum)] cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Add</span>
+                        </button>
                       </div>
 
-                      {items.length === 0 ? (
-                        <div className="p-4 border border-dashed border-outline-variant rounded-lg text-center">
-                          <p className="text-xs text-on-surface-variant mb-1">
-                            No {category.toLowerCase()} logged for {selectedDate}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => openModalFor(category)}
-                            className="text-xs font-medium text-primary hover:underline cursor-pointer"
-                          >
-                            + Add {category} Item
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
+                      {items.length > 0 ? (
+                        <ul className="divide-y divide-[var(--line)] mt-2">
                           {items.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex items-center justify-between gap-3 p-3 bg-surface-container-low rounded-lg"
-                            >
+                            <li key={item.id} className="py-2 flex items-center justify-between gap-3">
                               <div>
-                                <div className="text-sm font-medium text-on-surface">
-                                  {item.foodName}
-                                </div>
-                                <div className="text-xs text-on-surface-variant">
-                                  {item.portion} · {item.calories} kcal
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="hidden sm:inline text-xs text-on-surface-variant tabular-nums">
-                                  P: {item.proteinGrams}g | C: {item.carbsGrams}g | F: {item.fatGrams}g
+                                <b className="text-sm text-[var(--ink)]">{item.foodName}</b>
+                                <span className="block text-xs text-[var(--muted)] tabular-nums">
+                                  {item.portion} · {Math.round(item.calories)} kcal · P{' '}
+                                  {Math.round(item.proteinGrams)}g · C {Math.round(item.carbsGrams)}g · F{' '}
+                                  {Math.round(item.fatGrams)}g
                                 </span>
-                                <button
-                                  type="button"
-                                  aria-label={`Remove ${item.foodName}`}
-                                  onClick={() => void handleDeleteMeal(item.id)}
-                                  className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container cursor-pointer"
-                                >
-                                  <Trash2 className="w-4 h-4" aria-hidden="true" />
-                                </button>
                               </div>
-                            </div>
+                              <button
+                                type="button"
+                                aria-label={`Remove ${item.foodName}`}
+                                onClick={() => void handleDeleteMeal(item.id)}
+                                className="p-1.5 rounded-[10px] text-[var(--bad)] hover:bg-[var(--bad-soft)] cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" aria-hidden="true" />
+                              </button>
+                            </li>
                           ))}
-                        </div>
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-[var(--muted)] mt-1.5">Nothing logged.</p>
                       )}
-                    </section>
+                    </div>
                   );
                 })}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Right Column: Guidance & Meal History */}
-          <div className="space-y-5">
-            <section className="bg-secondary-fixed/40 border border-outline-variant rounded-xl p-5 space-y-3">
-              <h3 className="font-display text-base font-semibold text-on-surface">
-                Hormone-Supportive Nutrition
-              </h3>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
-                Balanced protein, fiber-rich complex carbohydrates, and omega-3 fats help stabilize blood glucose and support cycle regularity.
-              </p>
-              <ul className="space-y-1.5 text-xs text-on-surface">
-                <li>· Leafy greens (spinach, kale, arugula)</li>
-                <li>· Healthy fats (salmon, walnuts, flax seeds)</li>
-                <li>· Slow-digesting grains (quinoa, oats, lentils)</li>
-              </ul>
-            </section>
-
-            <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display text-base font-semibold text-on-surface">
-                  Meal History
-                </h3>
-                <span className="text-xs text-surface-tint">Recent Days</span>
-              </div>
-
-              {summary?.weeklyTotals && summary.weeklyTotals.length > 0 ? (
-                <div className="space-y-2">
-                  {summary.weeklyTotals.map((day) => (
-                    <div
-                      key={day.date}
-                      className="flex items-center justify-between py-2 border-b border-outline-variant/60 last:border-b-0 text-xs"
-                    >
-                      <span className="text-on-surface-variant">{day.label}</span>
-                      <span className="font-medium text-on-surface tabular-nums">
-                        {day.calories.toLocaleString()} kcal · {day.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyStateCard
-                  title="No Meal History Yet"
-                  description="Past daily totals from GET /api/nutrition will appear here once logged."
-                  endpoint="GET /api/nutrition"
-                />
-              )}
-            </section>
-          </div>
-        </div>
-      </div>
-
-      {/* Log Food Item Modal */}
-      {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-inverse-surface/45 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="log-meal-title"
-        >
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl max-w-lg w-full p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 id="log-meal-title" className="font-display text-xl font-semibold text-on-surface">
-                Log Food Item
+          {/* Add Food Form Card */}
+          <section id="mealform" className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+            <header className="mb-3">
+              <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                Add food
               </h2>
-              <button
-                type="button"
-                aria-label="Close food log modal"
-                onClick={() => setModalOpen(false)}
-                className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high cursor-pointer"
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
+              <p className="text-xs text-[var(--muted)] mt-0.5">
+                Pick a common food to fill the fields, or enter custom nutrition values (POST /api/nutrition).
+              </p>
+            </header>
+
+            <div className="flex flex-wrap gap-1.5 max-h-[126px] overflow-auto mb-4">
+              {COMMON_FOODS.map((f, idx) => (
+                <button
+                  key={f.foodName}
+                  type="button"
+                  onClick={() => handleQuickFill(idx)}
+                  className="px-3 py-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-medium text-[var(--ink)] cursor-pointer"
+                >
+                  {f.foodName} ({f.portion})
+                </button>
+              ))}
             </div>
 
-            <form onSubmit={handleCreateMeal} className="space-y-4">
-              <div>
-                <label htmlFor="meal-type" className="block text-xs font-medium text-on-surface-variant mb-1">
-                  Meal Timing
-                </label>
-                <select
-                  id="meal-type"
-                  value={mealType}
-                  onChange={(e) => setMealType(e.target.value as MealCategory)}
-                  className="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface"
-                >
-                  <option value="Breakfast">Breakfast</option>
-                  <option value="Lunch">Lunch</option>
-                  <option value="Dinner">Dinner</option>
-                  <option value="Snacks">Snacks</option>
-                </select>
-              </div>
+            <form onSubmit={handleCreateMeal} className="flex flex-col gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="f-slot" className="text-xs font-semibold text-[var(--muted)]">
+                    Meal
+                  </label>
+                  <select
+                    id="f-slot"
+                    value={mealType}
+                    onChange={(e) => setMealType(e.target.value as MealCategory)}
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
+                  >
+                    {SLOTS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label htmlFor="meal-name" className="block text-xs font-medium text-on-surface-variant mb-1">
-                  Food Name
-                </label>
-                <input
-                  id="meal-name"
-                  type="text"
-                  value={foodName}
-                  onChange={(e) => setFoodName(e.target.value)}
-                  placeholder="e.g. Avocado Toast with Poached Egg"
-                  className="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface"
-                />
-                {formErrors.foodName && (
-                  <p className="text-xs text-error mt-1">{formErrors.foodName}</p>
-                )}
-              </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="f-name" className="text-xs font-semibold text-[var(--muted)]">
+                    Food
+                  </label>
+                  <input
+                    id="f-name"
+                    type="text"
+                    maxLength={80}
+                    value={foodName}
+                    onChange={(e) => setFoodName(e.target.value)}
+                    placeholder="e.g. Avocado toast"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
+                  />
+                  {formErrors.foodName && (
+                    <p className="text-xs text-[var(--bad)]">{formErrors.foodName}</p>
+                  )}
+                </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="meal-portion" className="block text-xs font-medium text-on-surface-variant mb-1">
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="f-portion" className="text-xs font-semibold text-[var(--muted)]">
                     Portion
                   </label>
                   <input
-                    id="meal-portion"
+                    id="f-portion"
                     type="text"
                     value={portion}
                     onChange={(e) => setPortion(e.target.value)}
                     placeholder="1 serving"
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
                   />
                   {formErrors.portion && (
-                    <p className="text-xs text-error mt-1">{formErrors.portion}</p>
+                    <p className="text-xs text-[var(--bad)]">{formErrors.portion}</p>
                   )}
                 </div>
-                <div>
-                  <label htmlFor="meal-calories" className="block text-xs font-medium text-on-surface-variant mb-1">
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="f-kcal" className="text-xs font-semibold text-[var(--muted)]">
                     Calories (kcal)
                   </label>
                   <input
-                    id="meal-calories"
+                    id="f-kcal"
                     type="number"
                     min={0}
+                    step="any"
                     value={calories}
                     onChange={(e) => setCalories(e.target.value)}
-                    placeholder="350"
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface"
+                    placeholder="320"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
                   />
                   {formErrors.calories && (
-                    <p className="text-xs text-error mt-1">{formErrors.calories}</p>
+                    <p className="text-xs text-[var(--bad)]">{formErrors.calories}</p>
                   )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-4 gap-2">
-                <div>
-                  <label htmlFor="meal-protein" className="block text-xs text-on-surface-variant mb-1">
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="f-p" className="text-xs font-semibold text-[var(--muted)]">
                     Protein (g)
                   </label>
                   <input
-                    id="meal-protein"
+                    id="f-p"
                     type="number"
                     min={0}
+                    step="any"
                     value={proteinGrams}
                     onChange={(e) => setProteinGrams(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1.5 text-sm"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
                   />
                 </div>
-                <div>
-                  <label htmlFor="meal-carbs" className="block text-xs text-on-surface-variant mb-1">
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="f-c" className="text-xs font-semibold text-[var(--muted)]">
                     Carbs (g)
                   </label>
                   <input
-                    id="meal-carbs"
+                    id="f-c"
                     type="number"
                     min={0}
+                    step="any"
                     value={carbsGrams}
                     onChange={(e) => setCarbsGrams(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1.5 text-sm"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
                   />
                 </div>
-                <div>
-                  <label htmlFor="meal-fat" className="block text-xs text-on-surface-variant mb-1">
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="f-f" className="text-xs font-semibold text-[var(--muted)]">
                     Fat (g)
                   </label>
                   <input
-                    id="meal-fat"
+                    id="f-f"
                     type="number"
                     min={0}
+                    step="any"
                     value={fatGrams}
                     onChange={(e) => setFatGrams(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1.5 text-sm"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
                   />
                 </div>
-                <div>
-                  <label htmlFor="meal-fiber" className="block text-xs text-on-surface-variant mb-1">
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="f-fi" className="text-xs font-semibold text-[var(--muted)]">
                     Fiber (g)
                   </label>
                   <input
-                    id="meal-fiber"
+                    id="f-fi"
                     type="number"
                     min={0}
+                    step="any"
                     value={fiberGrams}
                     onChange={(e) => setFiberGrams(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1.5 text-sm"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
                   />
                 </div>
               </div>
 
               {formErrors.submit && (
-                <p className="text-xs text-error" role="alert">
+                <p className="text-xs font-medium text-[var(--bad)]" role="alert">
                   {formErrors.submit}
                 </p>
               )}
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high cursor-pointer"
-                >
-                  Cancel
-                </button>
+              <div>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-primary hover:bg-primary-container text-on-primary px-5 py-2 rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
+                  className="min-h-[42px] px-[18px] py-2 rounded-[12px] hhj-btn-primary text-sm font-semibold cursor-pointer disabled:opacity-60"
                 >
-                  {submitting ? 'Saving...' : 'Save Item'}
+                  {submitting ? 'Saving...' : `Add to ${formatShortDate(selectedDate)}`}
                 </button>
               </div>
             </form>
-          </div>
+          </section>
         </div>
-      )}
+
+        {/* Right: Guidance & 7-day Chart */}
+        <div className="flex flex-col gap-5">
+          <section className="hhj-card-flat p-4 sm:p-5 lg:p-[22px]">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[var(--plum-soft)] text-[var(--plum)]">
+              Hormone-supportive guidance
+            </span>
+            <h3 className="font-display font-bold text-lg text-[var(--ink)] mt-2.5 mb-1.5">
+              Eating with your cycle
+            </h3>
+            <p className="text-sm text-[var(--muted)] leading-relaxed">
+              Balanced protein, fiber-rich complex carbohydrates, and healthy omega-3 fats help support insulin sensitivity and steadier energy across phases.
+            </p>
+            <ul className="mt-3 space-y-1 text-xs text-[var(--ink)]">
+              <li>· Leafy greens (spinach, kale, arugula)</li>
+              <li>· Omega-3 sources (salmon, walnuts, flax seeds)</li>
+              <li>· Slow-digesting carbs (oats, quinoa, lentils)</li>
+            </ul>
+            <p className="text-xs text-[var(--muted)] mt-3">General guidance, not a clinical diet plan.</p>
+          </section>
+
+          <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+            <header className="mb-4">
+              <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                Last 7 days
+              </h2>
+              <p className="text-xs text-[var(--muted)] mt-0.5">
+                Calories logged from GET /api/nutrition. Dashed line marks your target.
+              </p>
+            </header>
+
+            {weeklyTotals.length > 0 ? (
+              <svg
+                viewBox="0 0 560 190"
+                className="w-full h-auto block overflow-visible"
+                role="img"
+                aria-label="Calories over the last 7 days"
+              >
+                <line x1="6" x2="554" y1="164" y2="164" stroke="var(--line)" />
+                {targets.calories > 0 && (
+                  <line
+                    x1="6"
+                    x2="554"
+                    y1={164 - (targets.calories / maxWeeklyKcal) * 140}
+                    y2={164 - (targets.calories / maxWeeklyKcal) * 140}
+                    stroke="var(--muted)"
+                    strokeDasharray="4 5"
+                    opacity="0.7"
+                  />
+                )}
+                {weeklyTotals.map((day, idx) => {
+                  const n = weeklyTotals.length;
+                  const iw = 548;
+                  const bw = Math.min(54, (iw / n) * 0.62);
+                  const cx = 6 + (iw / n) * (idx + 0.5);
+                  const bh = Math.max(0, (day.calories / maxWeeklyKcal) * 140);
+                  const y = 164 - bh;
+                  const isLast = idx === n - 1;
+                  return (
+                    <g key={day.date}>
+                      <rect
+                        x={(cx - bw / 2).toFixed(1)}
+                        y={y.toFixed(1)}
+                        width={bw.toFixed(1)}
+                        height={bh.toFixed(1)}
+                        rx="7"
+                        fill={isLast ? 'var(--plum)' : 'var(--bar)'}
+                      />
+                      {day.calories > 0 && (
+                        <text
+                          x={cx.toFixed(1)}
+                          y={(y - 6).toFixed(1)}
+                          textAnchor="middle"
+                          className="text-[11px] font-semibold fill-[var(--muted)]"
+                        >
+                          {day.calories}
+                        </text>
+                      )}
+                      <text
+                        x={cx.toFixed(1)}
+                        y="183"
+                        textAnchor="middle"
+                        className="text-[11px] font-semibold fill-[var(--muted)]"
+                      >
+                        {day.label}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            ) : (
+              <EmptyStateCard
+                title="No meal history yet"
+                description="Past daily totals from GET /api/nutrition will appear here once logged."
+                endpoint="GET /api/nutrition"
+              />
+            )}
+          </section>
+        </div>
+      </div>
 
       <ToastBanner
         message={toast?.message ?? null}

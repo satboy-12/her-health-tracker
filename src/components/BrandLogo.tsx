@@ -1,34 +1,79 @@
-import React, { useState } from 'react';
+import React, { useId } from 'react';
 
-const STITCH_LOGO_URL =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCwO2R6mhHHS7Dl6DuE9TDGICyWyWvIiTMhOBjh-UBp-6fxwDvR19W4w7h_RH_LOFmOAQyHj2qCsrObMwgsKPMK83JHCTN0MybFAahlmS_V_uYEVVYui8ydY8MpJw1zjen5KZx_YkK6fWHqHMm-fi_N2TF0Str-eoXUVxG5oHJIER2DrLUg4eayb4HFt25hT8T6tbkgRIpwEZVOxfvqWvWBOBhbpnR0PYUxAmTfTGQ';
+interface BrandLogoProps {
+  className?: string;
+  showSweep?: boolean;
+}
 
-export function BrandLogo({ className = 'h-8 w-8' }: { className?: string }) {
-  const [imgError, setImgError] = useState(false);
-
-  if (!imgError) {
-    return (
-      <img
-        src={STITCH_LOGO_URL}
-        alt="Her Health Journey Logo"
-        referrerPolicy="no-referrer"
-        onError={() => setImgError(true)}
-        className={`${className} rounded-lg object-contain`}
-      />
-    );
-  }
+/**
+ * Official Her Health Journey brand emblem:
+ * Architectural Champagne Gold "H" monogram framed within a delicate botanical cycle arc
+ * on a deep Emerald Green medallion (#103C32 -> #092820).
+ */
+export function BrandLogo({ className = 'w-9 h-9', showSweep = false }: BrandLogoProps) {
+  const goldGradId = useId();
+  const bgGradId = useId();
 
   return (
     <span
-      className={`${className} inline-flex items-center justify-center rounded-lg bg-primary text-on-primary shrink-0`}
+      className={`${className} relative overflow-hidden rounded-[26%] inline-grid place-items-center shrink-0 border border-[#C5A66B]/45 shadow-[0_6px_18px_rgba(9,40,32,0.28)]`}
+      style={{
+        background: 'linear-gradient(145deg, #174F40 0%, #103C32 55%, #092820 100%)',
+      }}
       aria-hidden="true"
     >
-      <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="1.8">
-        <path
-          d="M12 20.5s-6.5-4.3-8.4-8.4C2.2 9.1 3.9 5.5 7.4 5.2c1.9-.2 3.6.8 4.6 2.3 1-1.5 2.7-2.5 4.6-2.3 3.5.3 5.2 3.9 3.8 6.9-1.9 4.1-8.4 8.4-8.4 8.4Z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      {showSweep && (
+        <span
+          className="hhj-logo-sweep pointer-events-none absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#E4D2A5]/65 to-transparent"
+          aria-hidden="true"
         />
+      )}
+
+      <svg
+        viewBox="0 0 36 36"
+        className="w-[74%] h-[74%] relative z-10"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id={goldGradId} x1="6" y1="5" x2="30" y2="31" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#E4D2A5" />
+            <stop offset="55%" stopColor="#C5A66B" />
+            <stop offset="100%" stopColor="#E4D2A5" />
+          </linearGradient>
+          <linearGradient id={bgGradId} x1="18" y1="4" x2="18" y2="32" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#C5A66B" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#27836A" stopOpacity="0.65" />
+          </linearGradient>
+        </defs>
+
+        {/* Subtle outer precision ring */}
+        <circle
+          cx="18"
+          cy="18"
+          r="14.2"
+          stroke={`url(#${bgGradId})`}
+          strokeWidth="1.25"
+          strokeDasharray="68 12"
+          strokeLinecap="round"
+        />
+
+        {/* Crisp Architectural H Monogram */}
+        <path
+          d="M11.5 10V26M24.5 10V26"
+          stroke={`url(#${goldGradId})`}
+          strokeWidth="2.8"
+          strokeLinecap="round"
+        />
+        {/* Sculpted botanical wave crossbar */}
+        <path
+          d="M11.5 18.2C14.2 16.4 21.8 19.8 24.5 17.8"
+          stroke={`url(#${goldGradId})`}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        {/* Center gold horizon focal dot */}
+        <circle cx="18" cy="18" r="1.5" fill="#E4D2A5" />
       </svg>
     </span>
   );

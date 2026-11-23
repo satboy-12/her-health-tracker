@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
+  Activity,
   Bell,
   BookOpen,
   CalendarDays,
   Droplets,
-  HeartPulse,
-  LayoutDashboard,
+  FileSpreadsheet,
+  LayoutGrid,
+  Lock,
   LogOut,
-  Menu,
+  MoreHorizontal,
   Smile,
   User,
   UserCircle,
@@ -20,31 +22,37 @@ import { useAuth } from '../context/AuthContext';
 import { getApiBaseUrl } from '../api/client';
 
 const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', shortLabel: 'Dash', icon: LayoutDashboard },
-  { to: '/period-tracker', label: 'Period Tracker', shortLabel: 'Period', icon: CalendarDays },
-  { to: '/pcos-tracker', label: 'PCOS Symptom Tracker', shortLabel: 'PCOS', icon: HeartPulse },
-  { to: '/wellness', label: 'Mood & Wellness', shortLabel: 'Mood', icon: Smile },
-  { to: '/nutrition', label: 'Nutrition & Diet', shortLabel: 'Diet', icon: Utensils },
-  { to: '/water', label: 'Water Tracker', shortLabel: 'Water', icon: Droplets },
-  { to: '/journal', label: 'Health Journal', shortLabel: 'Journal', icon: BookOpen },
-  { to: '/profile', label: 'Profile', shortLabel: 'Profile', icon: UserCircle },
+  { to: '/dashboard', label: 'Today', icon: LayoutGrid, accent: '#C5A66B' },
+  { to: '/period-tracker', label: 'Cycle', icon: CalendarDays, accent: '#E58B91' },
+  { to: '/pcos-tracker', label: 'PCOS', icon: Activity, accent: '#B49AD8' },
+  { to: '/wellness', label: 'Mood & Wellness', icon: Smile, accent: '#A8BCA4' },
+  { to: '/nutrition', label: 'Nutrition', icon: Utensils, accent: '#D8AA65' },
+  { to: '/water', label: 'Water', icon: Droplets, accent: '#70B8C8' },
+  { to: '/journal', label: 'Journal', icon: BookOpen, accent: '#D4B98A' },
+  { to: '/sheets', label: 'Google Sheets', icon: FileSpreadsheet, accent: '#27836A' },
+  { to: '/profile', label: 'Profile', icon: UserCircle, accent: '#E4D2A5' },
 ];
 
-const MOBILE_NAV_ITEMS = [
-  NAV_ITEMS[0],
-  NAV_ITEMS[1],
-  NAV_ITEMS[2],
-  NAV_ITEMS[3],
-  NAV_ITEMS[7],
+const MOBILE_PRIMARY_TABS = [
+  { to: '/dashboard', label: 'Today', icon: LayoutGrid },
+  { to: '/period-tracker', label: 'Cycle', icon: CalendarDays },
+  { to: '/wellness', label: 'Mood', icon: Smile },
+  { to: '/journal', label: 'Journal', icon: BookOpen },
 ];
+
+const MOBILE_SHEET_ITEMS = NAV_ITEMS.filter(
+  (item) => !MOBILE_PRIMARY_TABS.some((tab) => tab.to === item.to),
+);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, isPreviewMode, logout, exitPreviewMode } = useAuth();
+  const { user, authProvider, isPreviewMode, logout, exitPreviewMode } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
 
   const handleSignOut = async () => {
+    setMoreSheetOpen(false);
     if (isPreviewMode && !user) {
       exitPreviewMode();
       navigate('/login');
@@ -55,238 +63,282 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   const baseUrl = getApiBaseUrl();
+  const inMoreRoute = MOBILE_SHEET_ITEMS.some((i) => i.to === location.pathname);
 
   return (
-    <div className="min-h-screen bg-background text-on-background">
-      {/* Desktop Sidebar */}
-      <aside
-        aria-label="Primary Sidebar Navigation"
-        className="hidden lg:flex fixed left-0 top-0 h-full w-72 bg-surface-container-low border-r border-outline-variant/60 z-40 flex-col py-8"
-      >
-        <div className="px-6 mb-8 flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
-            <BrandLogo className="h-8 w-8" />
-            <span className="font-display text-lg font-semibold text-on-surface whitespace-nowrap">
-              Her Health
-            </span>
-          </Link>
-        </div>
-
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto" aria-label="Health modules">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
-                    isActive
-                      ? 'bg-primary-container text-on-primary-container font-semibold'
-                      : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
-                  }`
-                }
-              >
-                <Icon className="w-5 h-5 mr-3 shrink-0" aria-hidden="true" />
-                <span className="truncate">{item.label}</span>
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        <div className="px-4 pt-4 border-t border-outline-variant/60">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="w-full flex items-center px-4 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors cursor-pointer"
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+      <div className="hhj-shell py-4 lg:py-6 pb-24 lg:pb-12">
+        <div className="page-container grid grid-cols-1 lg:grid-cols-[224px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)] gap-6 items-start">
+          {/* Desktop Emerald Navigation Sidebar */}
+          <aside
+            aria-label="Primary Sidebar Navigation"
+            className="hidden lg:flex sticky top-5 h-[calc(100dvh-40px)] flex-col gap-[18px] px-[14px] py-5 rounded-[18px] border border-[#C5A66B]/25 shadow-[0_12px_32px_rgba(9,40,32,0.18)]"
+            style={{ backgroundColor: 'var(--nav-background)', color: 'var(--nav-text)' }}
           >
-            <LogOut className="w-5 h-5 mr-3 shrink-0" aria-hidden="true" />
-            <span>{isPreviewMode && !user ? 'Exit Preview' : 'Sign Out'}</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="lg:pl-72 flex flex-col min-h-screen">
-        {/* Top Bar */}
-        <header className="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-surface/90 backdrop-blur-md border-b border-outline-variant/50 z-30 flex items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open navigation menu"
-              className="lg:hidden p-2 rounded-lg hover:bg-surface-container-high text-on-surface cursor-pointer"
-            >
-              <Menu className="w-5 h-5" aria-hidden="true" />
-            </button>
-            <Link to="/" className="lg:hidden flex items-center gap-2">
-              <BrandLogo className="h-7 w-7" />
-              <span className="font-display text-base font-semibold text-on-surface whitespace-nowrap">
-                Her Health
-              </span>
-            </Link>
-            {isPreviewMode && !user && (
-              <span className="hidden sm:inline-block text-xs font-medium text-primary">
-                UI Layout Preview (Spring Boot API Disconnected)
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 ml-auto relative">
-            <button
-              type="button"
-              aria-label="API connection and reminders overview"
-              aria-expanded={statusPopoverOpen}
-              onClick={() => setStatusPopoverOpen((prev) => !prev)}
-              className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors cursor-pointer"
-            >
-              <Bell className="w-5 h-5" aria-hidden="true" />
-            </button>
-
             <Link
-              to="/profile"
-              aria-label="Open profile settings"
-              className="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center hover:bg-primary-container transition-colors"
+              to="/dashboard"
+              className="flex items-center gap-2.5 px-2 text-white font-display font-bold leading-[1.15] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C5A66B] rounded-xl"
             >
-              <User className="w-4 h-4" aria-hidden="true" />
+              <BrandLogo className="w-9 h-9" />
+              <span className="tracking-tight">
+                Her Health{' '}
+                <br />
+                Journey
+              </span>
             </Link>
 
-            {statusPopoverOpen && (
-              <div
-                role="region"
-                aria-label="Backend integration status"
-                className="absolute right-0 top-12 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg p-4 z-50"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-on-surface">
-                    API &amp; Session Status
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="Close status popover"
-                    onClick={() => setStatusPopoverOpen(false)}
-                    className="p-1 rounded hover:bg-surface-container-high text-on-surface-variant cursor-pointer"
+            <nav className="flex flex-col gap-1 flex-1 overflow-y-auto" aria-label="Main">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-[12px] font-semibold text-[0.92rem] transition-colors whitespace-nowrap ${
+                        isActive
+                          ? 'bg-[#174F40] text-[#E4D2A5] border border-[#C5A66B]/40'
+                          : 'text-white/80 hover:bg-[#174F40]/65 hover:text-white border border-transparent'
+                      }`
+                    }
                   >
-                    <X className="w-4 h-4" aria-hidden="true" />
-                  </button>
-                </div>
-                <div className="text-xs text-on-surface-variant space-y-2">
-                  <p>
-                    <span className="font-medium text-on-surface">Session:</span>{' '}
-                    {user ? `Authenticated (${user.email})` : 'Offline UI Preview'}
-                  </p>
-                  <p>
-                    <span className="font-medium text-on-surface">Spring Boot Base URL:</span>{' '}
-                    <code className="font-mono text-primary">
-                      {baseUrl || 'Not configured (VITE_API_BASE_URL empty)'}
-                    </code>
-                  </p>
-                  <div className="pt-2 border-t border-outline-variant/60 flex justify-between items-center">
-                    <Link
-                      to="/profile"
-                      onClick={() => setStatusPopoverOpen(false)}
-                      className="text-primary font-medium hover:underline"
-                    >
-                      Manage Preferences
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      className="text-on-surface-variant hover:text-on-surface font-medium cursor-pointer"
-                    >
-                      {user ? 'Log out' : 'Go to Login'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </header>
+                    {({ isActive }) => (
+                      <>
+                        <Icon
+                          className="w-5 h-5 shrink-0"
+                          style={{ color: isActive ? item.accent : undefined }}
+                          aria-hidden="true"
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </nav>
 
-        {/* Mobile Drawer */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden flex">
-            <div
-              className="fixed inset-0 bg-inverse-surface/40 backdrop-blur-xs"
-              onClick={() => setMobileMenuOpen(false)}
-              aria-hidden="true"
-            />
-            <div className="relative w-72 max-w-[85vw] bg-surface-container-low h-full p-6 flex flex-col z-10 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <BrandLogo className="h-8 w-8" />
-                  <span className="font-display text-lg font-semibold text-on-surface">
-                    Her Health
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Close navigation menu"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-2 rounded-lg hover:bg-surface-container-high text-on-surface cursor-pointer"
-                >
-                  <X className="w-5 h-5" aria-hidden="true" />
-                </button>
-              </div>
-              <nav className="flex-1 space-y-1 overflow-y-auto">
-                {NAV_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                          isActive
-                            ? 'bg-primary-container text-on-primary-container font-semibold'
-                            : 'text-on-surface-variant hover:bg-surface-container-high'
-                        }`
-                      }
-                    >
-                      <Icon className="w-5 h-5 mr-3 shrink-0" aria-hidden="true" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  );
-                })}
-              </nav>
+            <div className="mt-auto space-y-3 pt-3 border-t border-white/15">
+              <p className="text-[0.76rem] text-[#B9D2C5] flex gap-2 px-2 items-start leading-snug">
+                <Lock className="w-4 h-4 shrink-0 mt-0.5 text-[#C5A66B]" aria-hidden="true" />
+                <span>
+                  {user
+                    ? authProvider === 'firebase'
+                      ? `Signed in (${user.fullName}). Cloud Firestore active.`
+                      : `Signed in (${user.fullName}). Spring Boot API synced.`
+                    : 'Connect Firebase (Google) or Spring Boot API.'}
+                </span>
+              </p>
+
               <button
                 type="button"
-                onClick={handleSignOut}
-                className="mt-4 flex items-center px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high cursor-pointer"
+                onClick={() => void handleSignOut()}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-[12px] text-[0.9rem] font-semibold text-white/85 hover:bg-[#174F40] hover:text-[#E4D2A5] transition-colors cursor-pointer"
               >
-                <LogOut className="w-5 h-5 mr-3 shrink-0" aria-hidden="true" />
+                <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
                 <span>{isPreviewMode && !user ? 'Exit Preview' : 'Sign Out'}</span>
               </button>
             </div>
-          </div>
-        )}
+          </aside>
 
-        <main className="flex-1 pt-16 pb-20 lg:pb-8">{children}</main>
+          {/* Main Workspace Column */}
+          <div className="min-w-0 flex flex-col gap-5">
+            {/* Mobile Topbar + Desktop subtle utility row */}
+            <div className="flex items-center justify-between gap-3">
+              <Link
+                to="/dashboard"
+                className="lg:hidden flex items-center gap-2.5 font-display font-bold text-[var(--ink)]"
+              >
+                <BrandLogo className="w-8 h-8" />
+                <span>Her Health Journey</span>
+              </Link>
+
+              {isPreviewMode && !user ? (
+                <span className="hidden lg:inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
+                  <span>UI Preview Mode</span>
+                  <span aria-hidden="true">·</span>
+                  <span>Spring Boot API Disconnected</span>
+                </span>
+              ) : (
+                <span className="hidden lg:block" />
+              )}
+
+              <div className="flex items-center gap-2 ml-auto relative">
+                <button
+                  type="button"
+                  aria-label="API connection and reminders overview"
+                  aria-expanded={statusPopoverOpen}
+                  onClick={() => setStatusPopoverOpen((prev) => !prev)}
+                  className="w-9 h-9 rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-[var(--muted)] hover:text-[var(--ink)] inline-flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <Bell className="w-4 h-4" aria-hidden="true" />
+                </button>
+
+                <Link
+                  to="/profile"
+                  aria-label="Open profile settings"
+                  className="w-9 h-9 rounded-[12px] bg-[var(--button-primary)] text-[var(--button-primary-text)] flex items-center justify-center hover:bg-[var(--button-primary-hover)] transition-colors"
+                >
+                  <User className="w-4 h-4" aria-hidden="true" />
+                </Link>
+
+                {statusPopoverOpen && (
+                  <div
+                    role="region"
+                    aria-label="Backend integration status"
+                    className="absolute right-0 top-11 w-80 max-w-[calc(100vw-32px)] hhj-card p-4 z-50"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-[var(--ink)]">
+                        API &amp; Session Status
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Close status popover"
+                        onClick={() => setStatusPopoverOpen(false)}
+                        className="p-1 rounded-lg hover:bg-[var(--surface2)] text-[var(--muted)] cursor-pointer"
+                      >
+                        <X className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                    <div className="text-xs text-[var(--muted)] space-y-2">
+                      <p>
+                        <span className="font-semibold text-[var(--ink)]">Session:</span>{' '}
+                        {user
+                          ? authProvider === 'firebase'
+                            ? `Firebase Google (${user.email})`
+                            : `Spring Boot (${user.email})`
+                          : 'Offline UI Preview'}
+                      </p>
+                      <p className="break-all">
+                        <span className="font-semibold text-[var(--ink)]">
+                          {authProvider === 'firebase' ? 'Database:' : 'Spring Boot Base URL:'}
+                        </span>{' '}
+                        <code className="font-mono text-[var(--plum)]">
+                          {authProvider === 'firebase'
+                            ? 'Cloud Firestore (Connected)'
+                            : baseUrl || 'Not configured (VITE_API_BASE_URL empty)'}
+                        </code>
+                      </p>
+                      <div className="pt-2 border-t border-[var(--line)] flex justify-between items-center">
+                        <Link
+                          to="/profile"
+                          onClick={() => setStatusPopoverOpen(false)}
+                          className="text-[var(--plum)] font-semibold hover:underline"
+                        >
+                          Manage Preferences
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => void handleSignOut()}
+                          className="text-[var(--muted)] hover:text-[var(--ink)] font-semibold cursor-pointer"
+                        >
+                          {user ? 'Log out' : 'Go to Login'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <main className="min-w-0 flex flex-col gap-5 sm:gap-6">{children}</main>
+          </div>
+        </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile "More" Slide-Up Sheet */}
+      {moreSheetOpen && (
+        <div className="lg:hidden fixed inset-0 z-30">
+          <div
+            className="fixed inset-0 bg-black/45"
+            onClick={() => setMoreSheetOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-label="More health modules"
+            className="fixed left-0 right-0 bottom-0 z-35 bg-[var(--surface)] border-t border-[var(--border-strong)] rounded-t-[20px] p-4 pb-[88px] shadow-[0_-12px_40px_rgba(9,40,32,0.22)]"
+          >
+            <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-[var(--line)]">
+              <span className="font-display font-bold text-sm text-[var(--ink)]">More Modules</span>
+              <button
+                type="button"
+                aria-label="Close more modules menu"
+                onClick={() => setMoreSheetOpen(false)}
+                className="p-1 rounded-lg hover:bg-[var(--surface2)] text-[var(--muted)] cursor-pointer"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+            <nav aria-label="More" className="flex flex-col gap-1">
+              {MOBILE_SHEET_ITEMS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMoreSheetOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-[12px] font-semibold transition-colors ${
+                        isActive
+                          ? 'bg-[var(--surface2)] text-[var(--plum)]'
+                          : 'text-[var(--muted)] hover:bg-[var(--surface2)] hover:text-[var(--ink)]'
+                      }`
+                    }
+                  >
+                    <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] font-semibold text-[var(--muted)] hover:bg-[var(--surface2)] hover:text-[var(--ink)] cursor-pointer text-left"
+              >
+                <LogOut className="w-5 h-5 shrink-0" aria-hidden="true" />
+                <span>{isPreviewMode && !user ? 'Exit Preview' : 'Sign Out'}</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Emerald Bottom Tab Bar */}
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-outline-variant z-30 flex items-center justify-around px-1"
+        className="lg:hidden fixed left-0 right-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#C5A66B]/25 px-3 py-1.5"
+        style={{ backgroundColor: 'var(--nav-background)', color: 'var(--nav-text)' }}
       >
-        {MOBILE_NAV_ITEMS.map((item) => {
+        {MOBILE_PRIMARY_TABS.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={() => setMoreSheetOpen(false)}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center min-w-[56px] py-1 text-[11px] font-medium transition-colors ${
-                  isActive ? 'text-primary font-semibold' : 'text-on-surface-variant'
+                `flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-[10px] text-[0.7rem] font-semibold transition-colors ${
+                  isActive ? 'text-[#C5A66B]' : 'text-white/75 hover:text-white'
                 }`
               }
             >
-              <Icon className="w-5 h-5 mb-0.5" aria-hidden="true" />
-              <span>{item.shortLabel}</span>
+              <Icon className="w-5 h-5" aria-hidden="true" />
+              <span>{item.label}</span>
             </NavLink>
           );
         })}
+        <button
+          type="button"
+          aria-expanded={moreSheetOpen}
+          onClick={() => setMoreSheetOpen((prev) => !prev)}
+          className={`flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-[10px] text-[0.7rem] font-semibold cursor-pointer ${
+            moreSheetOpen || inMoreRoute ? 'text-[#C5A66B]' : 'text-white/75 hover:text-white'
+          }`}
+        >
+          <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
+          <span>More</span>
+        </button>
       </nav>
     </div>
   );

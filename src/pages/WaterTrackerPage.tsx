@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bell, Droplets, GlassWater, Plus } from 'lucide-react';
+import { Bell, Droplets } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 import { ApiIntegrationBanner } from '../components/ApiIntegrationBanner';
 import { EmptyStateCard } from '../components/EmptyStateCard';
@@ -46,7 +46,7 @@ export function WaterTrackerPage() {
   const remindersEnabled = data?.remindersEnabled ?? true;
 
   const metrics = useMemo(
-    () => calculateHydrationMetrics(totalMl, targetMl, 70),
+    () => calculateHydrationMetrics(totalMl, targetMl, 100),
     [totalMl, targetMl],
   );
 
@@ -58,7 +58,7 @@ export function WaterTrackerPage() {
     setSaving(true);
     try {
       await waterService.logIntake({ date: todayIso, amountMl });
-      setToast({ message: `Logged ${amountMl} ml of water.`, variant: 'success' });
+      setToast({ message: `+${amountMl} ml logged.`, variant: 'success' });
       await loadWater();
     } catch (err) {
       setToast({
@@ -112,181 +112,256 @@ export function WaterTrackerPage() {
   };
 
   const history = data?.weeklyHistory ?? [];
-  const maxHistoryMl = Math.max(targetMl, ...history.map((h) => h.totalMl));
+  const maxHistoryMl = Math.max(targetMl || 2000, ...history.map((h) => h.totalMl)) * 1.12;
+  const glassesLeft = targetMl > totalMl ? Math.ceil((targetMl - totalMl) / 250) : 0;
 
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-surface-tint">
-            Hydration Management
-          </p>
-          <h1 className="font-display text-3xl font-semibold text-on-surface mt-1">
-            Daily Water Tracker
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-1">
-            Set your daily target, record water intake, and monitor historical hydration records.
-          </p>
-        </div>
+      {/* Pagehead */}
+      <div>
+        <p className="hhj-eyebrow">Hydration</p>
+        <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
+          Water
+        </h1>
+        <p className="text-sm text-[var(--muted)] mt-1">
+          One-tap intake logging, daily target configuration, and weekly hydration history.
+        </p>
+      </div>
 
-        <ApiIntegrationBanner
-          error={apiError}
-          expectedEndpoint={`GET /api/water?date=${todayIso}`}
-          onRetry={loadWater}
-          retrying={loading}
-        />
+      <ApiIntegrationBanner
+        error={apiError}
+        expectedEndpoint={`GET /api/water?date=${todayIso}`}
+        onRetry={loadWater}
+        retrying={loading}
+      />
 
-        {loading ? (
-          <LoadingSkeleton rows={3} />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Progress Ring Card */}
-            <section className="lg:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col items-center justify-between gap-6">
-              <div className="w-full flex items-center justify-between">
-                <h2 className="font-display text-lg font-semibold text-on-surface">
-                  Today&apos;s Progress
-                </h2>
-                <Droplets className="w-5 h-5 text-primary" aria-hidden="true" />
+      {loading ? (
+        <LoadingSkeleton rows={3} />
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+          {/* Left: Today SVG Ring + Quick Add */}
+          <section className="hhj-card p-4 sm:p-5 lg:p-[22px] flex flex-col gap-5">
+            <header className="flex items-start justify-between gap-2">
+              <div>
+                <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">Today</h2>
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  {targetMl > 0
+                    ? glassesLeft === 0
+                      ? 'Goal reached. Nice work.'
+                      : `${glassesLeft} ${glassesLeft === 1 ? 'glass' : 'glasses'} (250 ml) to go`
+                    : 'Awaiting target from GET /api/water'}
+                </p>
               </div>
+              <Droplets className="w-5 h-5 text-[var(--plum)]" aria-hidden="true" />
+            </header>
 
-              <div className="relative w-52 h-52 flex items-center justify-center">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="70"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="12"
-                    className="text-surface-container-high"
-                  />
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="70"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="12"
-                    strokeLinecap="round"
-                    strokeDasharray={metrics.circumference}
-                    strokeDashoffset={metrics.strokeDashoffset}
-                    className="text-primary transition-all duration-500"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="font-display text-3xl font-bold text-on-surface tabular-nums">
-                    {totalMl.toLocaleString()}
-                  </span>
-                  <span className="text-xs text-on-surface-variant tabular-nums">
-                    {targetMl > 0 ? `of ${targetMl.toLocaleString()} ml` : 'of — ml'}
-                  </span>
-                  <span className="text-xs font-semibold text-primary mt-1 tabular-nums">
-                    {targetMl > 0 ? `${metrics.percentage}% Completed` : 'Awaiting target'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="w-full space-y-3">
-                <span className="block text-xs font-medium text-on-surface-variant text-center">
-                  Quick Add Water
+            <div className="relative w-[min(240px,100%)] aspect-square mx-auto">
+              <svg
+                viewBox="0 0 240 240"
+                className="w-full h-full"
+                role="img"
+                aria-label={`${metrics.percentage} percent of daily water goal`}
+              >
+                <circle
+                  cx="120"
+                  cy="120"
+                  r="100"
+                  fill="none"
+                  stroke="var(--surface2)"
+                  strokeWidth="18"
+                />
+                <circle
+                  cx="120"
+                  cy="120"
+                  r="100"
+                  fill="none"
+                  stroke="var(--plum)"
+                  strokeWidth="18"
+                  strokeLinecap="round"
+                  strokeDasharray={metrics.circumference}
+                  strokeDashoffset={metrics.strokeDashoffset}
+                  transform="rotate(-90 120 120)"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                <b className="font-display text-[2.6rem] leading-none text-[var(--ink)] tabular-nums">
+                  {totalMl}
+                </b>
+                <span className="text-sm text-[var(--muted)] mt-1 tabular-nums">
+                  {targetMl > 0 ? `of ${targetMl} ml` : 'of — ml'}
                 </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[100, 250, 500, 750].map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      disabled={saving}
-                      onClick={() => void handleAddWater(amount)}
-                      className="bg-surface-container-low hover:bg-surface-container-high border border-outline-variant py-2.5 px-2 rounded-xl text-xs font-medium text-on-surface flex flex-col items-center gap-1 cursor-pointer disabled:opacity-60"
-                    >
-                      <GlassWater className="w-4 h-4 text-primary" aria-hidden="true" />
-                      <span>+{amount} ml</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-2 pt-2">
-                  <input
-                    type="number"
-                    aria-label="Custom water amount in ml"
-                    min={10}
-                    max={2000}
-                    value={customMl}
-                    onChange={(e) => setCustomMl(e.target.value)}
-                    className="flex-1 bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface"
-                  />
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => void handleAddWater(Number(customMl))}
-                    className="bg-primary hover:bg-primary-container text-on-primary px-4 py-2 rounded-xl text-sm font-medium inline-flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" aria-hidden="true" />
-                    Add
-                  </button>
-                </div>
+                <span className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--plum-soft)] text-[var(--plum)] tabular-nums">
+                  {targetMl > 0 ? `${metrics.percentage}%` : '—'}
+                </span>
               </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2">
+              {[100, 250, 500, 750].map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleAddWater(amount)}
+                  className="min-h-[42px] px-4 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-sm font-semibold text-[var(--ink)] cursor-pointer disabled:opacity-60"
+                >
+                  +{amount}
+                </button>
+              ))}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleAddWater(Number(customMl));
+              }}
+              className="flex items-center justify-center gap-2"
+            >
+              <label htmlFor="w-custom" className="sr-only">
+                Custom amount in ml
+              </label>
+              <input
+                id="w-custom"
+                type="number"
+                min={1}
+                max={3000}
+                value={customMl}
+                onChange={(e) => setCustomMl(e.target.value)}
+                placeholder="Custom ml"
+                className="max-w-[150px] min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)] tabular-nums"
+              />
+              <button
+                type="submit"
+                disabled={saving}
+                className="min-h-[42px] px-4 py-2 rounded-[12px] hhj-btn-primary text-sm font-semibold cursor-pointer disabled:opacity-60"
+              >
+                Add
+              </button>
+            </form>
+          </section>
+
+          {/* Right Stack: Weekly Chart + Goal + Reminders + Today's Log */}
+          <div className="flex flex-col gap-5">
+            <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+              <header className="flex items-start justify-between gap-2 mb-4">
+                <div>
+                  <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                    Last 7 days
+                  </h2>
+                  <p className="text-xs text-[var(--muted)] mt-0.5 tabular-nums">
+                    Dashed line is your daily target ({targetMl > 0 ? `${targetMl} ml` : '— ml'})
+                  </p>
+                </div>
+              </header>
+
+              {history.length > 0 ? (
+                <svg
+                  viewBox="0 0 560 190"
+                  className="w-full h-auto block overflow-visible"
+                  role="img"
+                  aria-label="Water over the last 7 days in ml"
+                >
+                  <line x1="6" x2="554" y1="164" y2="164" stroke="var(--line)" />
+                  {targetMl > 0 && (
+                    <line
+                      x1="6"
+                      x2="554"
+                      y1={164 - (targetMl / maxHistoryMl) * 140}
+                      y2={164 - (targetMl / maxHistoryMl) * 140}
+                      stroke="var(--muted)"
+                      strokeDasharray="4 5"
+                      opacity="0.7"
+                    />
+                  )}
+                  {history.map((item, idx) => {
+                    const n = history.length;
+                    const iw = 548;
+                    const bw = Math.min(54, (iw / n) * 0.62);
+                    const cx = 6 + (iw / n) * (idx + 0.5);
+                    const bh = Math.max(0, (item.totalMl / maxHistoryMl) * 140);
+                    const y = 164 - bh;
+                    const isLast = idx === n - 1;
+                    return (
+                      <g key={item.date}>
+                        <rect
+                          x={(cx - bw / 2).toFixed(1)}
+                          y={y.toFixed(1)}
+                          width={bw.toFixed(1)}
+                          height={bh.toFixed(1)}
+                          rx="7"
+                          fill={isLast ? 'var(--plum)' : 'var(--bar)'}
+                        />
+                        {item.totalMl > 0 && (
+                          <text
+                            x={cx.toFixed(1)}
+                            y={(y - 6).toFixed(1)}
+                            textAnchor="middle"
+                            className="text-[11px] font-semibold fill-[var(--muted)]"
+                          >
+                            {item.totalMl}
+                          </text>
+                        )}
+                        <text
+                          x={cx.toFixed(1)}
+                          y="183"
+                          textAnchor="middle"
+                          className="text-[11px] font-semibold fill-[var(--muted)]"
+                        >
+                          {item.dayLabel}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              ) : (
+                <EmptyStateCard
+                  title="No historical hydration records"
+                  description="Log water intake with your Spring Boot backend to populate your 7-day chart."
+                  endpoint="GET /api/water"
+                />
+              )}
             </section>
 
-            {/* Right Panels */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* Target Form & Linear Bar */}
-              <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="font-display text-lg font-semibold text-on-surface">
-                      Daily Water Target
-                    </h2>
-                    <p className="text-xs text-on-surface-variant">
-                      Customize your daily hydration goal (PUT /api/water)
-                    </p>
-                  </div>
-                  <form onSubmit={handleUpdateTarget} className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      aria-label="Daily water target in ml"
-                      min={500}
-                      max={6000}
-                      step={50}
-                      value={targetInput}
-                      onChange={(e) => setTargetInput(e.target.value)}
-                      className="w-28 bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface tabular-nums"
-                    />
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
-                    >
-                      Set Target
-                    </button>
-                  </form>
+            {/* Target + Reminders */}
+            <section className="hhj-card p-4 sm:p-5 lg:p-[22px] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display font-bold text-base text-[var(--ink)]">
+                    Daily water goal
+                  </h2>
+                  <p className="text-xs text-[var(--muted)]">Update target via PUT /api/water</p>
                 </div>
-
-                <div className="w-full bg-surface-container-high h-3.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full transition-all duration-500"
-                    style={{ width: `${metrics.clampedBarPercent}%` }}
+                <form onSubmit={handleUpdateTarget} className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    aria-label="Daily water target in ml"
+                    min={500}
+                    max={6000}
+                    step={50}
+                    value={targetInput}
+                    onChange={(e) => setTargetInput(e.target.value)}
+                    className="w-28 min-h-[38px] px-3 py-1.5 rounded-[10px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)] tabular-nums"
                   />
-                </div>
-                <div className="flex justify-between text-xs text-on-surface-variant tabular-nums">
-                  <span>0 ml</span>
-                  <span>Target: {targetMl > 0 ? `${targetMl.toLocaleString()} ml` : '—'}</span>
-                </div>
-              </section>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="min-h-[38px] px-3.5 py-1.5 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--ink)] cursor-pointer"
+                  >
+                    Set Target
+                  </button>
+                </form>
+              </div>
 
-              {/* Smart Hydration Reminder Toggle */}
-              <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-secondary-fixed flex items-center justify-center text-secondary shrink-0">
-                    <Bell className="w-5 h-5" aria-hidden="true" />
-                  </div>
+              <div className="pt-3 border-t border-[var(--line)] flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="w-9 h-9 rounded-[10px] bg-[var(--plum-soft)] text-[var(--plum)] grid place-items-center shrink-0">
+                    <Bell className="w-4 h-4" aria-hidden="true" />
+                  </span>
                   <div>
-                    <h2 className="font-display text-base font-semibold text-on-surface">
-                      Hydration Reminders
-                    </h2>
-                    <p className="text-xs text-on-surface-variant mt-0.5">
-                      Sync gentle hydration reminder preference with your account.
-                    </p>
+                    <b className="text-sm text-[var(--ink)] block">Hydration reminders</b>
+                    <span className="text-xs text-[var(--muted)]">
+                      Sync reminder preference with your account
+                    </span>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -297,53 +372,36 @@ export function WaterTrackerPage() {
                     onChange={(e) => void handleToggleReminders(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
+                  <div className="w-11 h-6 bg-[var(--surface2)] border border-[var(--line)] rounded-full peer peer-checked:bg-[var(--plum)] after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5" />
                 </label>
-              </section>
+              </div>
+            </section>
 
-              {/* Historical Records */}
-              <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 space-y-4">
-                <div>
-                  <h2 className="font-display text-lg font-semibold text-on-surface">
-                    Historical Hydration Records
-                  </h2>
-                  <p className="text-xs text-on-surface-variant">
-                    Weekly daily totals returned from GET /api/water
-                  </p>
-                </div>
-
-                {history.length > 0 ? (
-                  <div className="h-40 flex items-end justify-between gap-2 pt-2">
-                    {history.map((item) => {
-                      const heightPct = Math.max(12, Math.round((item.totalMl / maxHistoryMl) * 100));
-                      return (
-                        <div key={item.date} className="flex-1 flex flex-col items-center justify-end h-full gap-1">
-                          <span className="text-[10px] text-on-surface-variant tabular-nums">
-                            {item.totalMl}
-                          </span>
-                          <div className="w-full flex-1 flex items-end">
-                            <div
-                              className="w-full bg-primary/80 rounded-t-md"
-                              style={{ height: `${heightPct}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-on-surface-variant">{item.dayLabel}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <EmptyStateCard
-                    title="No Historical Hydration Records"
-                    description="Log water intake with your connected Spring Boot backend to populate your 7-day hydration chart."
-                    endpoint="GET /api/water"
-                  />
-                )}
-              </section>
-            </div>
+            {/* Today's Log */}
+            <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+              <header className="mb-3">
+                <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                  Today&apos;s log
+                </h2>
+              </header>
+              {data?.entries && data.entries.length > 0 ? (
+                <ul className="divide-y divide-[var(--line)]">
+                  {[...data.entries].reverse().map((item) => (
+                    <li key={item.id} className="py-2 flex items-center justify-between text-sm">
+                      <span>
+                        <b className="tabular-nums text-[var(--ink)]">{item.amountMl} ml</b>{' '}
+                        <span className="text-xs text-[var(--muted)]">at {item.loggedAt}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-[var(--muted)]">Nothing logged yet today.</p>
+              )}
+            </section>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <ToastBanner
         message={toast?.message ?? null}

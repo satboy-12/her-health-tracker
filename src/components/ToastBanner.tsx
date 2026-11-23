@@ -14,7 +14,7 @@ export function ToastBanner({
 }: ToastBannerProps) {
   useEffect(() => {
     if (!message) return;
-    const timer = setTimeout(onDismiss, 4000);
+    const timer = setTimeout(onDismiss, 3200);
     return () => clearTimeout(timer);
   }, [message, onDismiss]);
 
@@ -24,19 +24,19 @@ export function ToastBanner({
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-20 lg:bottom-6 right-6 z-50 max-w-sm bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-xl shadow-xl flex items-center gap-3"
+      className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-6 z-60 max-w-[calc(100vw-32px)] sm:max-w-md bg-[var(--ink)] text-[var(--bg)] px-4 py-2.5 rounded-[12px] shadow-xl flex items-center gap-3 font-semibold text-sm"
     >
       {variant === 'success' ? (
-        <CheckCircle2 className="w-5 h-5 text-tertiary-fixed shrink-0" aria-hidden="true" />
+        <CheckCircle2 className="w-4 h-4 text-[var(--good)] shrink-0" aria-hidden="true" />
       ) : (
-        <AlertCircle className="w-5 h-5 text-error-container shrink-0" aria-hidden="true" />
+        <AlertCircle className="w-4 h-4 text-[var(--bad)] shrink-0" aria-hidden="true" />
       )}
-      <span className="text-sm font-medium flex-1">{message}</span>
+      <span className="flex-1">{message}</span>
       <button
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss notification"
-        className="p-1 rounded hover:bg-white/10 cursor-pointer"
+        className="p-1 rounded hover:opacity-75 cursor-pointer"
       >
         <X className="w-4 h-4" aria-hidden="true" />
       </button>

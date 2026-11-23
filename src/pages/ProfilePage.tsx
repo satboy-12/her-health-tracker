@@ -1,30 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Bell,
-  Download,
-  LogOut,
-  ShieldCheck,
-  Trash2,
-  User,
-} from 'lucide-react';
+import { Download, LogOut, ShieldCheck, Trash2 } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 import { ApiIntegrationBanner } from '../components/ApiIntegrationBanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
-import { SafeImage } from '../components/SafeImage';
 import { ToastBanner } from '../components/ToastBanner';
 import { ApiError } from '../api/client';
 import { profileService } from '../api/services';
 import { useAuth } from '../context/AuthContext';
+import { useTheme, type ThemeChoice } from '../context/ThemeContext';
 import type { UserProfile } from '../types/api';
 import { validateEmail } from '../utils/validation';
 
-const PROFILE_PORTRAIT_URL =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBcljPLoRS4cWRi-G-XMHyjQcPVnzZGvnEMNYEA0ZXcBvuIx9Q6JQydBnxKJMmFZUbj7ZPpPhOLHAu6SYzvnRDviuRww3-39ONH44lho97ku9J28MI5xYMBLEoeDH2GxN9kI5fVpzI_ZCs7Uft6Muro7pY2oR_Vh3Z-9gaLI7GHIXvnegQVy0mIlDDm-tCQ9lGymm-C66zHDB4j1ZGT_b-7AgVrR93mLwbjSsKE-2w';
+const THEME_OPTIONS: Array<{ value: ThemeChoice; label: string }> = [
+  { value: 'system', label: 'Match device' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
 
 export function ProfilePage() {
-  const { user, logout, isPreviewMode, exitPreviewMode } = useAuth();
+  const { user, authProvider, logout, isPreviewMode, exitPreviewMode } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -105,7 +102,7 @@ export function ProfilePage() {
       });
       setProfile(updated);
       applyProfileFields(updated);
-      setToast({ message: 'Profile and preferences saved.', variant: 'success' });
+      setToast({ message: 'Changes saved.', variant: 'success' });
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Unable to save profile changes.';
       setFormError(msg);
@@ -118,7 +115,7 @@ export function ProfilePage() {
   const handleExport = () => {
     if (!profile) {
       setToast({
-        message: 'No profile record loaded from GET /api/profile to export yet.',
+        message: 'No profile record loaded to export yet.',
         variant: 'error',
       });
       return;
@@ -163,338 +160,315 @@ export function ProfilePage() {
 
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-surface-tint">
-              Account Management
-            </p>
-            <h1 className="font-display text-3xl font-semibold text-on-surface mt-1">
-              Profile &amp; Settings
-            </h1>
-            <p className="text-sm text-on-surface-variant mt-1">
-              Manage your personal details, notification preferences, and session controls.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setFormError(null);
-                if (profile) {
-                  applyProfileFields(profile);
-                  setToast({ message: 'Reverted unsaved changes.', variant: 'success' });
-                } else {
-                  setFullName(user?.fullName || '');
-                  setEmail(user?.email || '');
-                  setDateOfBirth('');
-                  setPhoneNumber('');
-                  setToast({ message: 'Cleared unsaved draft fields.', variant: 'success' });
-                }
-              }}
-              className="px-4 py-2 bg-surface-container-high text-on-surface text-sm font-medium rounded-xl hover:bg-surface-container-highest cursor-pointer"
-            >
-              Reset
-            </button>
-            <button
-              type="submit"
-              form="profile-settings-form"
-              disabled={saving}
-              className="px-4 py-2 bg-primary hover:bg-primary-container text-on-primary text-sm font-medium rounded-xl cursor-pointer disabled:opacity-60"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
+      {/* Pagehead */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className="hhj-eyebrow">Account</p>
+          <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
+            Profile and settings
+          </h1>
+          <p className="text-sm text-[var(--muted)] mt-1">
+            {authProvider === 'firebase'
+              ? 'Your preferences, appearance, and Firebase Cloud Firestore account controls.'
+              : 'Your preferences, appearance, and Spring Boot account controls.'}
+          </p>
         </div>
 
-        <ApiIntegrationBanner
-          error={apiError}
-          expectedEndpoint="GET /api/profile"
-          onRetry={loadProfile}
-          retrying={loading}
-        />
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              setFormError(null);
+              if (profile) {
+                applyProfileFields(profile);
+                setToast({ message: 'Reverted unsaved changes.', variant: 'success' });
+              } else {
+                setFullName(user?.fullName || '');
+                setEmail(user?.email || '');
+                setDateOfBirth('');
+                setPhoneNumber('');
+                setToast({ message: 'Cleared unsaved draft fields.', variant: 'success' });
+              }
+            }}
+            className="min-h-[40px] px-4 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-sm font-semibold text-[var(--ink)] cursor-pointer"
+          >
+            Reset
+          </button>
+          <button
+            type="submit"
+            form="profile-settings-form"
+            disabled={saving}
+            className="min-h-[40px] px-4 py-2 rounded-[12px] hhj-btn-primary text-sm font-semibold cursor-pointer disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : 'Save changes'}
+          </button>
+        </div>
+      </div>
 
-        {loading ? (
-          <LoadingSkeleton rows={4} />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Summary Card */}
-            <div className="space-y-6">
-              <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col items-center text-center relative overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-20 bg-primary-fixed/60" />
-                <div className="relative mt-6 mb-4">
-                  <div className="w-24 h-24 rounded-full p-1 bg-surface-container-lowest border border-outline-variant overflow-hidden">
-                    <SafeImage
-                      src={PROFILE_PORTRAIT_URL}
-                      alt="Account holder portrait"
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  </div>
-                </div>
-                <h2 className="font-display text-xl font-semibold text-on-surface">
-                  {fullName || 'Account Not Loaded'}
+      <ApiIntegrationBanner
+        error={apiError}
+        expectedEndpoint="GET /api/profile"
+        onRetry={loadProfile}
+        retrying={loading}
+      />
+
+      {loading ? (
+        <LoadingSkeleton rows={4} />
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+          {/* Left Stack: Profile Details & Appearance */}
+          <div className="flex flex-col gap-5">
+            <form
+              id="profile-settings-form"
+              onSubmit={handleSave}
+              className="hhj-card p-4 sm:p-5 lg:p-[22px] flex flex-col gap-5"
+            >
+              <header>
+                <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                  Personal details
                 </h2>
-                <p className="text-sm text-on-surface-variant mt-0.5">
-                  {email || 'Connect GET /api/profile'}
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  {authProvider === 'firebase'
+                    ? 'Updates sync securely with Firebase Cloud Firestore.'
+                    : 'Updates sync directly via PUT /api/profile.'}
                 </p>
+              </header>
 
-                <div className="w-full grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-outline-variant/60 text-xs">
-                  <div>
-                    <span className="text-on-surface-variant block">Member Since</span>
-                    <span className="font-semibold text-on-surface mt-0.5 block">
-                      {profile?.memberSince ?? '—'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-on-surface-variant block">Account Tier</span>
-                    <span className="font-semibold text-primary mt-0.5 block">
-                      {profile?.accountTier ?? '—'}
-                    </span>
-                  </div>
-                </div>
-              </section>
+              {formError && (
+                <p className="text-xs font-medium text-[var(--bad)]" role="alert">
+                  {formError}
+                </p>
+              )}
 
-              <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display text-base font-semibold text-on-surface">
-                    Security Overview
-                  </h3>
-                  <ShieldCheck className="w-5 h-5 text-tertiary" aria-hidden="true" />
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-on-surface-variant">Session Storage</span>
-                    <span className="font-medium text-tertiary">In-Memory Only</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-on-surface-variant">Two-Factor Auth</span>
-                    <span className="font-medium text-on-surface">
-                      {profile ? (profile.twoFactorEnabled ? 'Enabled' : 'Disabled') : '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-on-surface-variant">Password Updated</span>
-                    <span className="font-medium text-on-surface">
-                      {profile?.passwordLastChanged ?? '—'}
-                    </span>
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            {/* Right Column: Forms & Controls */}
-            <div className="lg:col-span-2 space-y-6">
-              <form id="profile-settings-form" onSubmit={handleSave} className="space-y-6">
-                <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-primary">
-                      <User className="w-5 h-5" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h2 className="font-display text-lg font-semibold text-on-surface">
-                        Personal Details
-                      </h2>
-                      <p className="text-xs text-on-surface-variant">
-                        Update your personal identification details (PUT /api/profile).
-                      </p>
-                    </div>
-                  </div>
-
-                  {formError && (
-                    <p className="text-xs text-error" role="alert">
-                      {formError}
-                    </p>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="prof-name" className="block text-xs font-medium text-on-surface-variant mb-1">
-                        Full Name
-                      </label>
-                      <input
-                        id="prof-name"
-                        type="text"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Enter full name"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant text-sm text-on-surface"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="prof-email" className="block text-xs font-medium text-on-surface-variant mb-1">
-                        Email Address
-                      </label>
-                      <input
-                        id="prof-email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="name@example.com"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant text-sm text-on-surface"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="prof-dob" className="block text-xs font-medium text-on-surface-variant mb-1">
-                        Date of Birth
-                      </label>
-                      <input
-                        id="prof-dob"
-                        type="date"
-                        value={dateOfBirth}
-                        onChange={(e) => setDateOfBirth(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant text-sm text-on-surface"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="prof-phone" className="block text-xs font-medium text-on-surface-variant mb-1">
-                        Phone Number
-                      </label>
-                      <input
-                        id="prof-phone"
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="+1 (555) 000-0000"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant text-sm text-on-surface"
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-secondary-fixed flex items-center justify-center text-secondary">
-                      <Bell className="w-5 h-5" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h2 className="font-display text-lg font-semibold text-on-surface">
-                        Preferences &amp; Reminders
-                      </h2>
-                      <p className="text-xs text-on-surface-variant">
-                        Choose which cycle and wellness reminders to enable.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="divide-y divide-outline-variant/60">
-                    <div className="py-3 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-on-surface">
-                          Cycle Predictions &amp; Reminders
-                        </p>
-                        <p className="text-xs text-on-surface-variant">
-                          Notify ahead of estimated cycle start dates.
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        aria-label="Cycle Predictions and Reminders"
-                        checked={cycleReminders}
-                        onChange={(e) => setCycleReminders(e.target.checked)}
-                        className="w-4 h-4 accent-primary cursor-pointer"
-                      />
-                    </div>
-                    <div className="py-3 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-on-surface">
-                          Medication &amp; Supplement Alerts
-                        </p>
-                        <p className="text-xs text-on-surface-variant">
-                          Daily schedule reminders for supplements or prescriptions.
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        aria-label="Medication and Supplement Alerts"
-                        checked={medicationAlerts}
-                        onChange={(e) => setMedicationAlerts(e.target.checked)}
-                        className="w-4 h-4 accent-primary cursor-pointer"
-                      />
-                    </div>
-                    <div className="py-3 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-on-surface">Hydration Nudges</p>
-                        <p className="text-xs text-on-surface-variant">
-                          Gentle daytime reminders to log water intake.
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        aria-label="Hydration Nudges"
-                        checked={hydrationNudges}
-                        onChange={(e) => setHydrationNudges(e.target.checked)}
-                        className="w-4 h-4 accent-primary cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                </section>
-              </form>
-
-              {/* Privacy & Data Actions */}
-              <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-surface-container-low flex flex-col justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-on-surface">Export Profile Record</h3>
-                    <p className="text-xs text-on-surface-variant mt-1">
-                      Download your loaded Spring Boot profile payload as a JSON file.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleExport}
-                    className="self-start px-3.5 py-2 rounded-xl bg-surface-container-lowest border border-outline-variant text-xs font-medium text-on-surface hover:bg-surface-container-high inline-flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" aria-hidden="true" />
-                    Export Data
-                  </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label htmlFor="prof-name" className="text-[0.84rem] font-semibold text-[var(--muted)]">
+                    Full Name
+                  </label>
+                  <input
+                    id="prof-name"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter full name"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
+                  />
                 </div>
 
-                <div className="p-4 rounded-xl bg-surface-container-low flex flex-col justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-error">Delete Account</h3>
-                    <p className="text-xs text-on-surface-variant mt-1">
-                      Request permanent removal of your account via DELETE /api/profile.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteDialogOpen(true)}
-                    className="self-start px-3.5 py-2 rounded-xl bg-error-container text-on-error-container text-xs font-medium hover:opacity-90 inline-flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-                    Delete Account
-                  </button>
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label htmlFor="prof-email" className="text-[0.84rem] font-semibold text-[var(--muted)]">
+                    Email Address
+                  </label>
+                  <input
+                    id="prof-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
+                  />
                 </div>
-              </section>
 
-              {/* Logout */}
-              <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="prof-dob" className="text-[0.84rem] font-semibold text-[var(--muted)]">
+                    Date of Birth
+                  </label>
+                  <input
+                    id="prof-dob"
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="prof-phone" className="text-[0.84rem] font-semibold text-[var(--muted)]">
+                    Phone Number
+                  </label>
+                  <input
+                    id="prof-phone"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[var(--line)] space-y-3">
+                <h3 className="font-display font-bold text-base text-[var(--ink)]">
+                  Reminders
+                </h3>
+                <label className="flex items-center justify-between gap-3 text-sm cursor-pointer">
+                  <span>Cycle Predictions &amp; Reminders</span>
+                  <input
+                    type="checkbox"
+                    checked={cycleReminders}
+                    onChange={(e) => setCycleReminders(e.target.checked)}
+                    className="w-4 h-4 accent-[var(--plum)] cursor-pointer"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm cursor-pointer">
+                  <span>Medication &amp; Supplement Alerts</span>
+                  <input
+                    type="checkbox"
+                    checked={medicationAlerts}
+                    onChange={(e) => setMedicationAlerts(e.target.checked)}
+                    className="w-4 h-4 accent-[var(--plum)] cursor-pointer"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm cursor-pointer">
+                  <span>Hydration Nudges</span>
+                  <input
+                    type="checkbox"
+                    checked={hydrationNudges}
+                    onChange={(e) => setHydrationNudges(e.target.checked)}
+                    className="w-4 h-4 accent-[var(--plum)] cursor-pointer"
+                  />
+                </label>
+              </div>
+            </form>
+
+            {/* Appearance Switcher */}
+            <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+              <header className="mb-3">
+                <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                  Appearance
+                </h2>
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  Switch between light, dark, or match your device theme.
+                </p>
+              </header>
+
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Theme appearance">
+                {THEME_OPTIONS.map((opt) => {
+                  const active = theme === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setTheme(opt.value);
+                        setToast({ message: `Theme set to ${opt.label}.`, variant: 'success' });
+                      }}
+                      aria-pressed={active}
+                      className={`min-h-[40px] px-4 py-1.5 rounded-full border text-sm transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-[var(--plum)] text-[var(--plum-ink)] border-[var(--plum)] font-semibold'
+                          : 'bg-[var(--surface)] text-[var(--ink)] border-[var(--line)] hover:bg-[var(--surface2)] font-medium'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+
+          {/* Right Stack: Account Summary, Data Export & Delete, About, Session */}
+          <div className="flex flex-col gap-5">
+            <section className="hhj-card p-4 sm:p-5 lg:p-[22px] space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="font-display text-base font-semibold text-on-surface">
-                    Session Control
+                  <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                    {fullName || 'Account Not Loaded'}
                   </h2>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    Sign out via POST /api/auth/logout and clear your in-memory token.
+                  <p className="text-sm text-[var(--muted)]">
+                    {email || (authProvider === 'firebase' ? 'Signed in with Firebase' : 'Connect GET /api/profile')}
                   </p>
                 </div>
+                <ShieldCheck className="w-6 h-6 text-[var(--good)] shrink-0" aria-hidden="true" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[var(--line)] text-xs">
+                <div className="bg-[var(--surface2)] rounded-[12px] p-3">
+                  <span className="text-[var(--muted)] block">Member Since</span>
+                  <b className="text-sm text-[var(--ink)] mt-0.5 block">
+                    {profile?.memberSince ?? '—'}
+                  </b>
+                </div>
+                <div className="bg-[var(--surface2)] rounded-[12px] p-3">
+                  <span className="text-[var(--muted)] block">Data Sync</span>
+                  <b className="text-sm text-[var(--good)] mt-0.5 block">
+                    {authProvider === 'firebase' ? 'Firebase Firestore' : 'Spring Boot / In-Memory'}
+                  </b>
+                </div>
+              </div>
+            </section>
+
+            <section className="hhj-card p-4 sm:p-5 lg:p-[22px] space-y-4">
+              <header>
+                <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                  Your data
+                </h2>
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  Export your loaded profile JSON or manage account deletion.
+                </p>
+              </header>
+
+              <div className="flex flex-wrap gap-2.5">
                 <button
                   type="button"
-                  onClick={() => void handleLogout()}
-                  className="px-4 py-2.5 rounded-xl bg-surface-container-high hover:bg-error hover:text-on-error text-on-surface text-sm font-medium inline-flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
+                  onClick={handleExport}
+                  className="inline-flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-sm font-semibold text-[var(--ink)] cursor-pointer"
                 >
-                  <LogOut className="w-4 h-4" aria-hidden="true" />
-                  <span>{isPreviewMode && !user ? 'Exit Preview' : 'Logout'}</span>
+                  <Download className="w-4 h-4" aria-hidden="true" />
+                  <span>Export profile JSON</span>
                 </button>
-              </section>
-            </div>
+
+                <button
+                  type="button"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="inline-flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-[12px] border border-[var(--bad)] text-sm font-semibold text-[var(--bad)] hover:bg-[var(--bad-soft)] cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                  <span>Delete account</span>
+                </button>
+              </div>
+            </section>
+
+            <section className="hhj-card p-4 sm:p-5 lg:p-[22px] flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-display font-bold text-base text-[var(--ink)]">
+                  Session control
+                </h2>
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  {authProvider === 'firebase'
+                    ? 'Sign out of your Google Firebase session on this device.'
+                    : 'Sign out via POST /api/auth/logout and clear in-memory token.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                className="inline-flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] text-sm font-semibold text-[var(--ink)] cursor-pointer whitespace-nowrap"
+              >
+                <LogOut className="w-4 h-4" aria-hidden="true" />
+                <span>{isPreviewMode && !user ? 'Exit Preview' : 'Sign Out'}</span>
+              </button>
+            </section>
+
+            <section className="hhj-card-flat p-4 sm:p-5 lg:p-[22px]">
+              <h3 className="font-display font-bold text-base text-[var(--ink)]">About this app</h3>
+              <p className="text-sm text-[var(--muted)] mt-1.5 leading-relaxed">
+                Her Health Journey is a personal tracking aid. It does not diagnose or treat any condition, and cycle predictions are estimates that should not be used as contraception.
+              </p>
+            </section>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Delete Account & Health Records"
-        description="Are you sure you want to permanently delete your account via DELETE /api/profile? This action cannot be undone."
+        description={
+          authProvider === 'firebase'
+            ? 'Are you sure you want to permanently delete your Firebase account and Cloud Firestore health records? This action cannot be undone.'
+            : 'Are you sure you want to permanently delete your account via DELETE /api/profile? This action cannot be undone.'
+        }
         confirmLabel="Delete Account"
         destructive
         busy={deleting}

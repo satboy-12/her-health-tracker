@@ -1,12 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Activity,
-  BatteryCharging,
-  Calendar,
-  CheckCircle2,
-  HeartPulse,
-  Trash2,
-} from 'lucide-react';
+import { Copy, Trash2 } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
 import { ApiIntegrationBanner } from '../components/ApiIntegrationBanner';
 import { EmptyStateCard } from '../components/EmptyStateCard';
@@ -15,31 +8,27 @@ import { ToastBanner } from '../components/ToastBanner';
 import { ApiError } from '../api/client';
 import { symptomsService } from '../api/services';
 import type { PcosSymptomLog } from '../types/api';
+import { buildClinicalSummary, formatLongDate } from '../utils/uiHelpers';
 
 const PCOS_SYMPTOMS = [
   'Acne / Skin',
   'Fatigue',
   'Cramping',
   'Hair Growth',
+  'Hair Thinning',
   'Mood Swings',
   'Bloating',
+  'Cravings',
+  'Headache',
 ];
 
-const SEVERITY_LABELS: Record<number, string> = {
-  1: '1 - Mild',
-  2: '2 - Mild+',
-  3: '3 - Moderate',
-  4: '4 - Severe',
-  5: '5 - Extreme',
-};
-
-const ENERGY_LABELS: Record<number, string> = {
-  1: 'Exhausted',
-  2: 'Low',
-  3: 'Moderate',
-  4: 'Good',
-  5: 'Vibrant',
-};
+const SEVERITY_PILLS: Array<{ val: number; label: string }> = [
+  { val: 1, label: '1 Mild' },
+  { val: 2, label: '2' },
+  { val: 3, label: '3 Moderate' },
+  { val: 4, label: '4' },
+  { val: 5, label: '5 Severe' },
+];
 
 export function PcosTrackerPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -51,7 +40,7 @@ export function PcosTrackerPage() {
   const [date, setDate] = useState(todayIso);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>(['Fatigue']);
   const [severity, setSeverity] = useState(3);
-  const [painLevel, setPainLevel] = useState(3);
+  const [painLevel, setPainLevel] = useState(2);
   const [energyLevel, setEnergyLevel] = useState(3);
   const [observations, setObservations] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -118,7 +107,7 @@ export function PcosTrackerPage() {
   const handleDelete = async (id: string) => {
     try {
       await symptomsService.remove(id);
-      setToast({ message: 'Symptom log removed.', variant: 'success' });
+      setToast({ message: 'Entry deleted.', variant: 'success' });
       await loadSymptoms();
     } catch (err) {
       setToast({
@@ -142,317 +131,400 @@ export function PcosTrackerPage() {
         percent: Math.round((count / logs.length) * 100),
       }))
       .sort((a, b) => b.percent - a.percent)
-      .slice(0, 4);
+      .slice(0, 5);
   }, [logs]);
 
-  const chartPoints = useMemo(() => {
-    const recent = [...logs].sort((a, b) => a.date.localeCompare(b.date)).slice(-10);
+  const chartData = useMemo(() => {
+    const recent = [...logs].sort((a, b) => a.date.localeCompare(b.date)).slice(-14);
     if (recent.length < 2) return null;
-    const stepX = 300 / (recent.length - 1);
+    const w = 560;
+    const h = 200;
+    const l = 26;
+    const r = 12;
+    const t = 12;
+    const b = 26;
+    const getX = (i: number) => l + ((w - l - r) * i) / (recent.length - 1);
+    const getY = (val: number) => t + (h - t - b) * (1 - (val - 1) / 4);
     const coords = recent.map((item, idx) => ({
-      x: Math.round(idx * stepX),
-      y: Math.round(100 - ((item.severity - 1) / 4) * 80 - 10),
+      x: getX(idx),
+      y: getY(item.severity),
       date: item.date,
-      severity: item.severity,
     }));
-    const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
-    return { coords, linePath };
+    const path = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join('');
+    const mid = Math.floor(recent.length / 2);
+    const firstAvg = recent.slice(0, mid).reduce((s, x) => s + x.severity, 0) / mid;
+    const secondAvg = recent.slice(mid).reduce((s, x) => s + x.severity, 0) / (recent.length - mid);
+    const diff = secondAvg - firstAvg;
+    const trendLabel = diff > 0.4 ? 'Rising' : diff < -0.4 ? 'Easing' : 'Stable';
+    return { coords, path, trendLabel, getY };
   }, [logs]);
+
+  const clinicalText = useMemo(() => buildClinicalSummary(logs), [logs]);
+
+  const handleCopySummary = async () => {
+    try {
+      await navigator.clipboard.writeText(clinicalText);
+      setToast({ message: 'Doctor summary copied to clipboard.', variant: 'success' });
+    } catch {
+      setToast({ message: 'Select and copy the text box manually.', variant: 'error' });
+    }
+  };
 
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-surface-tint flex items-center gap-1.5">
-            <HeartPulse className="w-4 h-4" aria-hidden="true" />
-            <span>Endocrine &amp; Systemic Tracking</span>
-          </p>
-          <h1 className="font-display text-3xl font-semibold text-on-surface mt-1">
-            PCOS Symptom Tracker
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-1 max-w-2xl">
-            Record active symptoms, overall severity, pelvic pain level, energy score, and personal observations to track longitudinal patterns.
-          </p>
-        </div>
+      {/* Pagehead */}
+      <div>
+        <p className="hhj-eyebrow">Symptom tracker</p>
+        <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
+          PCOS symptoms
+        </h1>
+        <p className="text-sm text-[var(--muted)] mt-1 max-w-[60ch]">
+          Log daily symptoms and see patterns over time. A personal tracking aid, not medical advice.
+        </p>
+      </div>
 
-        <ApiIntegrationBanner
-          error={apiError}
-          expectedEndpoint="GET /api/symptoms"
-          onRetry={loadSymptoms}
-          retrying={loading}
-        />
+      <ApiIntegrationBanner
+        error={apiError}
+        expectedEndpoint="GET /api/symptoms"
+        onRetry={loadSymptoms}
+        retrying={loading}
+      />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: Daily Log Form (7 cols) */}
-          <form
-            onSubmit={handleSubmit}
-            className="lg:col-span-7 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 space-y-6"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
-                  <Calendar className="w-5 h-5" aria-hidden="true" />
-                </div>
-                <div>
-                  <h2 className="font-display text-lg font-semibold text-on-surface">
-                    Daily Symptom Entry
-                  </h2>
-                  <p className="text-xs text-on-surface-variant">
-                    Record today&apos;s status or select a past date
-                  </p>
-                </div>
-              </div>
-              <input
-                type="date"
-                aria-label="Symptom log date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-surface-container-low border border-outline-variant px-3 py-2 rounded-xl text-sm text-on-surface"
-              />
-            </div>
-
-            {/* Symptom Selection */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.45fr_1fr] gap-5 items-start">
+        {/* Left Daily Log Form */}
+        <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+          <header className="flex flex-wrap items-start justify-between gap-3 mb-4">
             <div>
-              <span className="block text-sm font-medium text-on-surface mb-3">
-                Active Symptoms Today
+              <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                Daily log
+              </h2>
+              <p className="text-xs text-[var(--muted)] mt-0.5">
+                Record how you feel today or choose an earlier date.
+              </p>
+            </div>
+            <input
+              type="date"
+              aria-label="Symptom log date"
+              max={todayIso}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="min-h-[42px] px-3 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)]"
+            />
+          </header>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
+            <div className="flex flex-col gap-2">
+              <span className="text-[0.86rem] font-semibold text-[var(--muted)]">
+                Symptoms today
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="flex flex-wrap gap-2">
                 {PCOS_SYMPTOMS.map((symptom) => {
-                  const checked = selectedSymptoms.includes(symptom);
+                  const active = selectedSymptoms.includes(symptom);
                   return (
-                    <label
+                    <button
                       key={symptom}
-                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
-                        checked
-                          ? 'bg-primary-fixed/40 border-primary text-on-surface'
-                          : 'bg-surface-container-low border-outline-variant text-on-surface-variant hover:bg-surface-container'
+                      type="button"
+                      onClick={() => toggleSymptom(symptom)}
+                      aria-pressed={active}
+                      className={`min-h-[38px] px-3.5 py-1.5 rounded-full border text-sm transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-[var(--plum)] text-[var(--plum-ink)] border-[var(--plum)] font-semibold'
+                          : 'bg-[var(--surface)] text-[var(--ink)] border-[var(--line)] hover:bg-[var(--surface2)] font-medium'
                       }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleSymptom(symptom)}
-                        className="w-4 h-4 rounded accent-primary"
-                      />
-                      <span className="text-sm font-medium">{symptom}</span>
-                    </label>
+                      {symptom}
+                    </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Severity Scale 1-5 */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-on-surface">
-                  Overall Symptom Severity Scale
-                </span>
-                <span className="text-sm font-semibold text-primary">
-                  {SEVERITY_LABELS[severity]}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <button
-                    key={level}
-                    type="button"
-                    onClick={() => setSeverity(level)}
-                    className={`py-2.5 px-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                      severity === level
-                        ? 'bg-primary text-on-primary'
-                        : 'bg-surface-container-low text-on-surface hover:bg-primary-fixed/50'
-                    }`}
-                  >
-                    {SEVERITY_LABELS[level]}
-                  </button>
-                ))}
+            <div className="flex flex-col gap-2">
+              <span className="text-[0.86rem] font-semibold text-[var(--muted)]">
+                Overall severity
+              </span>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Overall severity">
+                {SEVERITY_PILLS.map((opt) => {
+                  const active = severity === opt.val;
+                  return (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => setSeverity(opt.val)}
+                      aria-pressed={active}
+                      className={`min-h-[38px] px-3.5 py-1.5 rounded-full border text-sm transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-[var(--plum)] text-[var(--plum-ink)] border-[var(--plum)] font-semibold'
+                          : 'bg-[var(--surface)] text-[var(--ink)] border-[var(--line)] hover:bg-[var(--surface2)] font-medium'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Pain & Energy Sliders */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="pcos-pain" className="block text-sm font-medium text-on-surface mb-2">
-                  Pelvic / Abdominal Pain Level
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="pcos-pain" className="text-[0.86rem] font-semibold text-[var(--muted)]">
+                  Pelvic or abdominal pain: <b className="text-[var(--ink)] tabular-nums">{painLevel}</b>/10
                 </label>
-                <div className="flex items-center gap-3 bg-surface-container-low p-3 rounded-xl border border-outline-variant">
-                  <Activity className="w-4 h-4 text-error shrink-0" aria-hidden="true" />
-                  <input
-                    id="pcos-pain"
-                    type="range"
-                    min={0}
-                    max={10}
-                    value={painLevel}
-                    onChange={(e) => setPainLevel(Number(e.target.value))}
-                    className="w-full accent-primary cursor-pointer"
-                  />
-                  <span className="text-sm font-semibold text-on-surface w-12 text-right tabular-nums">
-                    {painLevel}/10
-                  </span>
-                </div>
+                <input
+                  id="pcos-pain"
+                  type="range"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={painLevel}
+                  onChange={(e) => setPainLevel(Number(e.target.value))}
+                  className="w-full accent-[var(--plum)] h-7 cursor-pointer"
+                />
               </div>
 
-              <div>
-                <label htmlFor="pcos-energy" className="block text-sm font-medium text-on-surface mb-2">
-                  Energy Level Score
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="pcos-energy" className="text-[0.86rem] font-semibold text-[var(--muted)]">
+                  Energy: <b className="text-[var(--ink)] tabular-nums">{energyLevel}</b>/5
                 </label>
-                <div className="flex items-center gap-3 bg-surface-container-low p-3 rounded-xl border border-outline-variant">
-                  <BatteryCharging className="w-4 h-4 text-tertiary shrink-0" aria-hidden="true" />
-                  <input
-                    id="pcos-energy"
-                    type="range"
-                    min={1}
-                    max={5}
-                    value={energyLevel}
-                    onChange={(e) => setEnergyLevel(Number(e.target.value))}
-                    className="w-full accent-tertiary cursor-pointer"
-                  />
-                  <span className="text-sm font-medium text-on-surface whitespace-nowrap">
-                    {ENERGY_LABELS[energyLevel]}
-                  </span>
-                </div>
+                <input
+                  id="pcos-energy"
+                  type="range"
+                  min={1}
+                  max={5}
+                  step={1}
+                  value={energyLevel}
+                  onChange={(e) => setEnergyLevel(Number(e.target.value))}
+                  className="w-full accent-[var(--plum)] h-7 cursor-pointer"
+                />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="pcos-notes" className="block text-sm font-medium text-on-surface mb-2">
-                Personal Observations &amp; Clinical Notes
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="pcos-notes" className="text-[0.86rem] font-semibold text-[var(--muted)]">
+                Notes (triggers, food, sleep, medication)
               </label>
               <textarea
                 id="pcos-notes"
-                rows={3}
+                rows={4}
                 value={observations}
                 onChange={(e) => setObservations(e.target.value)}
-                placeholder="Note triggers, dietary influences, sleep quality, or medications taken..."
-                className="w-full bg-surface-container-low border border-outline-variant p-3 rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                placeholder="Note possible triggers, meals, rest quality, or medications..."
+                className="w-full px-3 py-2.5 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] text-sm text-[var(--ink)] resize-y"
               />
             </div>
 
             {formError && (
-              <p className="text-xs text-error" role="alert">
+              <p className="text-xs font-medium text-[var(--bad)]" role="alert">
                 {formError}
               </p>
             )}
 
-            <div className="flex justify-end">
+            <div>
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-primary hover:bg-primary-container text-on-primary text-sm font-medium px-6 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                className="min-h-[42px] px-[18px] py-2 rounded-[12px] hhj-btn-primary text-sm font-semibold cursor-pointer disabled:opacity-60"
               >
-                <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
-                <span>{submitting ? 'Saving...' : 'Save Symptom Entry'}</span>
+                {submitting ? 'Saving...' : 'Save entry'}
               </button>
             </div>
           </form>
+        </section>
 
-          {/* Right: Trends & History (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 space-y-5">
+        {/* Right Stack: Severity Chart, Frequency, Recent Entries */}
+        <div className="flex flex-col gap-5">
+          <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+            <header className="flex items-start justify-between gap-2 mb-4">
               <div>
-                <h2 className="font-display text-lg font-semibold text-on-surface">
-                  Severity Trend
+                <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                  Severity trend
                 </h2>
-                <p className="text-xs text-on-surface-variant">
-                  Plotted strictly from your logged /api/symptoms records
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  Each dot is a logged entry from /api/symptoms.
                 </p>
               </div>
+              {chartData && (
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                    chartData.trendLabel === 'Rising'
+                      ? 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                      : 'bg-[var(--ovu-soft)] text-[var(--ovu-ink)]'
+                  }`}
+                >
+                  {chartData.trendLabel}
+                </span>
+              )}
+            </header>
 
-              {loading ? (
-                <LoadingSkeleton rows={2} />
-              ) : chartPoints ? (
-                <div className="bg-surface-container-low rounded-xl p-4 space-y-2">
-                  <svg viewBox="0 0 300 100" className="w-full h-28 overflow-visible">
-                    <path
-                      d={chartPoints.linePath}
-                      fill="none"
-                      stroke="#88485e"
-                      strokeWidth="3"
-                      strokeLinecap="round"
+            {loading ? (
+              <LoadingSkeleton rows={2} />
+            ) : chartData ? (
+              <svg
+                viewBox="0 0 560 200"
+                className="w-full h-auto block overflow-visible"
+                role="img"
+                aria-label="PCOS symptom severity trend"
+              >
+                {[1, 2, 3, 4, 5].map((g) => (
+                  <g key={g}>
+                    <line
+                      x1="26"
+                      x2="548"
+                      y1={chartData.getY(g)}
+                      y2={chartData.getY(g)}
+                      stroke="var(--line)"
                     />
-                    {chartPoints.coords.map((pt, idx) => (
-                      <circle key={idx} cx={pt.x} cy={pt.y} r="4" fill="#88485e" />
-                    ))}
-                  </svg>
-                  <div className="flex justify-between text-[11px] text-on-surface-variant tabular-nums">
-                    <span>{chartPoints.coords[0].date}</span>
-                    <span>{chartPoints.coords[chartPoints.coords.length - 1].date}</span>
-                  </div>
-                </div>
-              ) : (
-                <EmptyStateCard
-                  title="Awaiting Trend History"
-                  description="At least 2 symptom logs from GET /api/symptoms are needed to render your severity trend chart."
-                  endpoint="GET /api/symptoms"
-                />
-              )}
-
-              {frequencyStats.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-sm font-medium text-on-surface">Most Frequent Symptoms</h3>
-                  {frequencyStats.map((stat) => (
-                    <div key={stat.name}>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-on-surface">{stat.name}</span>
-                        <span className="text-on-surface-variant tabular-nums">
-                          {stat.percent}% of logs
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-surface-container-low rounded-full overflow-hidden">
-                        <div
-                          className="bg-primary h-full rounded-full"
-                          style={{ width: `${stat.percent}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* Logged Records */}
-            <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 space-y-3">
-              <h2 className="font-display text-lg font-semibold text-on-surface">
-                Logged Entries
-              </h2>
-              {logs.length === 0 ? (
-                <p className="text-sm text-on-surface-variant">
-                  No symptom entries returned from the backend yet.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {logs.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="bg-surface-container-low rounded-xl p-4 flex items-start justify-between gap-3"
+                    <text
+                      x="0"
+                      y={chartData.getY(g) + 4}
+                      className="text-[11px] font-semibold fill-[var(--muted)]"
                     >
-                      <div className="space-y-1">
-                        <div className="text-xs text-primary font-medium tabular-nums">
-                          {entry.date} · Severity {entry.severity}/5 · Pain {entry.painLevel}/10
-                        </div>
-                        <div className="text-sm font-medium text-on-surface">
-                          {entry.symptoms.join(', ') || 'Observation Only'}
-                        </div>
-                        {entry.observations && (
-                          <p className="text-xs text-on-surface-variant">{entry.observations}</p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        aria-label={`Delete symptom log from ${entry.date}`}
-                        onClick={() => void handleDelete(entry.id)}
-                        className="p-1.5 rounded-lg hover:bg-error-container text-error cursor-pointer shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4" aria-hidden="true" />
-                      </button>
+                      {g}
+                    </text>
+                  </g>
+                ))}
+                <path
+                  d={chartData.path}
+                  fill="none"
+                  stroke="var(--plum)"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+                {chartData.coords.map((pt, idx) => {
+                  const isLast = idx === chartData.coords.length - 1;
+                  return (
+                    <circle
+                      key={idx}
+                      cx={pt.x.toFixed(1)}
+                      cy={pt.y.toFixed(1)}
+                      r={isLast ? 5.5 : 3.2}
+                      fill="var(--plum)"
+                      stroke={isLast ? 'var(--surface)' : undefined}
+                      strokeWidth={isLast ? 2.5 : undefined}
+                    />
+                  );
+                })}
+                <text
+                  x="26"
+                  y="194"
+                  textAnchor="start"
+                  className="text-[11px] font-semibold fill-[var(--muted)]"
+                >
+                  {chartData.coords[0].date}
+                </text>
+                <text
+                  x="548"
+                  y="194"
+                  textAnchor="end"
+                  className="text-[11px] font-semibold fill-[var(--muted)]"
+                >
+                  {chartData.coords[chartData.coords.length - 1].date}
+                </text>
+              </svg>
+            ) : (
+              <EmptyStateCard
+                title="Log at least two days to see a trend"
+                description="Your 1-5 severity line chart plots strictly from GET /api/symptoms."
+                endpoint="GET /api/symptoms"
+              />
+            )}
+          </section>
+
+          <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+            <header className="mb-3">
+              <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                Most frequent
+              </h2>
+              <p className="text-xs text-[var(--muted)] mt-0.5">Share of logged entries</p>
+            </header>
+
+            {frequencyStats.length > 0 ? (
+              <div className="space-y-3">
+                {frequencyStats.map((stat) => (
+                  <div key={stat.name} className="space-y-1.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[var(--ink)] font-medium">{stat.name}</span>
+                      <b className="tabular-nums text-[var(--ink)]">{stat.percent}%</b>
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
+                    <div className="h-2.5 rounded-full bg-[var(--surface2)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[var(--plum)]"
+                        style={{ width: `${stat.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--muted)]">Nothing logged yet.</p>
+            )}
+          </section>
+
+          <section className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+            <header className="mb-3">
+              <h2 className="font-display font-bold text-[1.25rem] text-[var(--ink)]">
+                Recent entries
+              </h2>
+            </header>
+
+            {logs.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">No symptom entries loaded yet.</p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {logs.map((entry) => (
+                  <li key={entry.id} className="py-2.5 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <b className="text-sm text-[var(--ink)]">{formatLongDate(entry.date)}</b>
+                      <p className="text-xs text-[var(--muted)] mt-0.5 tabular-nums">
+                        Severity {entry.severity}/5 · Pain {entry.painLevel}/10 ·{' '}
+                        {entry.symptoms.slice(0, 3).join(', ') || 'Observations only'}
+                      </p>
+                      {entry.observations && (
+                        <p className="text-xs text-[var(--muted)] mt-1">{entry.observations}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`Delete symptom log from ${entry.date}`}
+                      onClick={() => void handleDelete(entry.id)}
+                      className="p-1.5 rounded-[10px] text-[var(--bad)] hover:bg-[var(--bad-soft)] cursor-pointer shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       </div>
+
+      {/* Expandable Summary for your doctor */}
+      <details className="hhj-card p-4 sm:p-5 lg:p-[22px]">
+        <summary className="cursor-pointer font-display font-bold text-base text-[var(--ink)]">
+          Summary for your doctor
+        </summary>
+        <p className="text-xs text-[var(--muted)] mt-2 mb-3">
+          Built directly from your loaded symptom records. Copy it into a message or take it to an appointment.
+        </p>
+        <textarea
+          readOnly
+          aria-label="Clinical symptom summary"
+          value={clinicalText}
+          className="w-full min-h-[160px] p-3 rounded-[12px] border border-[var(--line)] bg-[var(--surface2)] font-mono text-xs text-[var(--ink)] leading-relaxed"
+        />
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => void handleCopySummary()}
+            className="inline-flex items-center gap-2 min-h-[38px] px-4 py-1.5 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-sm font-semibold text-[var(--ink)] cursor-pointer"
+          >
+            <Copy className="w-4 h-4" aria-hidden="true" />
+            <span>Copy summary</span>
+          </button>
+        </div>
+      </details>
 
       <ToastBanner
         message={toast?.message ?? null}

@@ -1,27 +1,37 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowRight,
+  Activity,
   BookOpen,
-  CalendarPlus,
+  Check,
+  ChevronRight,
   Droplets,
-  HeartPulse,
-  PlusCircle,
+  Plus,
   Smile,
+  Sparkles,
   Utensils,
 } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
-import { ApiIntegrationBanner } from '../components/ApiIntegrationBanner';
-import { EmptyStateCard } from '../components/EmptyStateCard';
-import { LoadingSkeleton } from '../components/LoadingSkeleton';
+import { CycleWheel } from '../components/CycleWheel';
+import { DashboardCard } from '../components/DashboardCard';
+import { EmptyState } from '../components/EmptyState';
+import { ErrorState } from '../components/ErrorState';
+import { LoadingState } from '../components/LoadingState';
+import { MoodFaceSvg } from '../components/MoodFaceSvg';
+import { PrimaryButton } from '../components/PrimaryButton';
+import { ProgressIndicator } from '../components/ProgressIndicator';
+import { SecondaryButton } from '../components/SecondaryButton';
+import { SectionHeader } from '../components/SectionHeader';
 import { ToastBanner } from '../components/ToastBanner';
 import { ApiError } from '../api/client';
 import { dashboardService, waterService } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import type { DashboardSummary } from '../types/api';
+import { PHASE_META, formatShortDate } from '../utils/uiHelpers';
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<ApiError | string | null>(null);
@@ -62,428 +72,570 @@ export function DashboardPage() {
     }
   };
 
-  const todayFormatted = new Intl.DateTimeFormat('en-US', {
+  const now = new Date();
+  const hr = now.getHours();
+  const timeGreeting = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const todayFormatted = new Intl.DateTimeFormat('en-GB', {
     weekday: 'long',
-    month: 'long',
     day: 'numeric',
-  }).format(new Date());
+    month: 'long',
+  }).format(now);
 
-  const greetingName = summary?.userName || user?.fullName || 'Welcome';
+  const displayName = summary?.userName || user?.fullName;
+  const heading = displayName ? `${timeGreeting}, ${displayName}` : timeGreeting;
+
+  const rawPhase = summary?.cycleSummary?.phase;
+  const phaseKey =
+    rawPhase === 'Menstrual' ||
+    rawPhase === 'Follicular' ||
+    rawPhase === 'Ovulation' ||
+    rawPhase === 'Luteal'
+      ? rawPhase
+      : 'Uncharted';
+  const phaseMeta = PHASE_META[phaseKey];
+
+  const avgCycle = summary?.cycleSummary?.averageCycleLength ?? 28;
+  const currentDay = summary?.cycleSummary?.currentDay ?? null;
+  const daysToNext = summary?.cycleSummary?.daysUntilNextPeriod ?? null;
+  const nextPeriodDate = summary?.cycleSummary?.nextPeriodDate ?? null;
 
   const waterIntake = summary?.waterSummary?.intakeMl ?? 0;
   const waterTarget = summary?.waterSummary?.targetMl ?? 0;
-  const waterPercent = waterTarget > 0 ? Math.min(100, Math.round((waterIntake / waterTarget) * 100)) : 0;
+  const waterPercent =
+    waterTarget > 0 ? Math.min(100, Math.round((waterIntake / waterTarget) * 100)) : 0;
+
+  const kcalConsumed = summary?.nutritionSummary?.caloriesConsumed ?? 0;
+  const kcalTarget = summary?.nutritionSummary?.caloriesTarget ?? 0;
+
   const cycleHistory = summary?.cycleSummary?.cycleHistory ?? [];
-  const maxCycleDays = Math.max(35, ...cycleHistory.map((c) => c.lengthDays));
+  const maxCycleChart = Math.max(35, ...cycleHistory.map((c) => c.lengthDays), avgCycle) * 1.12;
+
+  const checklist = [
+    {
+      to: '/wellness',
+      label: 'Mood and wellness',
+      sub: summary?.wellnessSummary?.mood
+        ? `Logged · ${summary.wellnessSummary.mood}${
+            summary.wellnessSummary.sleepHours != null
+              ? `, ${summary.wellnessSummary.sleepHours} h`
+              : ''
+          }`
+        : 'Not logged yet',
+      done: Boolean(summary?.wellnessSummary?.mood),
+      icon: Smile,
+      accent: 'var(--module-wellness)',
+    },
+    {
+      to: '/pcos-tracker',
+      label: 'PCOS symptoms',
+      sub: summary?.latestSymptom
+        ? `Logged · severity ${summary.latestSymptom.severity}/5`
+        : 'Not logged yet',
+      done: Boolean(summary?.latestSymptom),
+      icon: Activity,
+      accent: 'var(--module-symptoms)',
+    },
+    {
+      to: '/nutrition',
+      label: 'Nutrition & diet',
+      sub: kcalConsumed > 0 ? `${kcalConsumed} kcal logged` : 'Nothing logged yet',
+      done: kcalConsumed > 0,
+      icon: Utensils,
+      accent: 'var(--module-nutrition)',
+    },
+    {
+      to: '/journal',
+      label: 'Health journal',
+      sub:
+        summary?.recentJournalEntries && summary.recentJournalEntries.length > 0
+          ? `${summary.recentJournalEntries.length} recent ${
+              summary.recentJournalEntries.length === 1 ? 'entry' : 'entries'
+            }`
+          : 'No entry loaded',
+      done: Boolean(summary?.recentJournalEntries && summary.recentJournalEntries.length > 0),
+      icon: BookOpen,
+      accent: 'var(--module-journal)',
+    },
+  ];
+
+  const derivedInsights: Array<{ warn?: boolean; text: string }> = [];
+  if (daysToNext != null && daysToNext < -2) {
+    derivedInsights.push({
+      warn: true,
+      text: `Your period is ${Math.abs(daysToNext)} days later than predicted. Check in with a clinician if cycles stay unusually late.`,
+    });
+  }
+  if (summary?.wellnessSummary?.insight) {
+    derivedInsights.push({ text: summary.wellnessSummary.insight });
+  }
+  if (summary?.latestSymptom?.observations) {
+    derivedInsights.push({
+      text: `Latest symptom note (${summary.latestSymptom.date}): ${summary.latestSymptom.observations}`,
+    });
+  }
+  if (summary?.nutritionSummary?.sugarStatus) {
+    derivedInsights.push({
+      text: `Nutrition status: ${summary.nutritionSummary.sugarStatus}`,
+    });
+  }
 
   return (
     <AppShell>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Welcome & Quick Actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-surface-tint">
-              {todayFormatted}
-            </p>
-            <h1 className="font-display text-3xl font-semibold text-on-surface mt-1">
-              {user ? `Good day, ${greetingName}` : 'Health Overview'}
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              to="/pcos-tracker"
-              className="bg-surface-container-low hover:bg-surface-container text-on-surface border border-outline-variant px-4 py-2.5 rounded-xl text-sm font-medium transition-colors inline-flex items-center gap-2 whitespace-nowrap"
-            >
-              <PlusCircle className="w-4 h-4 text-primary" aria-hidden="true" />
-              Log Symptom
-            </Link>
-            <Link
-              to="/period-tracker"
-              className="bg-primary hover:bg-primary-container text-on-primary px-4 py-2.5 rounded-xl text-sm font-medium transition-colors inline-flex items-center gap-2 whitespace-nowrap"
-            >
-              <CalendarPlus className="w-4 h-4" aria-hidden="true" />
-              Log Period
-            </Link>
-          </div>
-        </div>
+      <SectionHeader
+        eyebrow={todayFormatted}
+        title={heading}
+        action={
+          <>
+            <SecondaryButton to="/pcos-tracker" variant="outline">
+              <Activity className="w-4 h-4 text-[var(--module-symptoms)]" aria-hidden="true" />
+              <span>Log symptoms</span>
+            </SecondaryButton>
+            <PrimaryButton to="/period-tracker">
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              <span>Log period</span>
+            </PrimaryButton>
+          </>
+        }
+      />
 
-        <ApiIntegrationBanner
-          error={apiError}
-          expectedEndpoint="GET /api/dashboard"
-          onRetry={loadDashboard}
-          retrying={loading}
-        />
+      <ErrorState
+        error={apiError}
+        expectedEndpoint="GET /api/dashboard"
+        onRetry={loadDashboard}
+        retrying={loading}
+      />
 
-        {loading ? (
-          <LoadingSkeleton rows={4} />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Period Overview (Span 7) */}
-            <section className="lg:col-span-7 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-medium uppercase tracking-wider text-surface-tint">
-                    Cycle Phase · {summary?.cycleSummary.phase ?? 'Awaiting Cycle Data'}
-                  </span>
-                  {summary?.cycleSummary.fertilityStatus && (
-                    <span className="text-xs font-medium text-primary">
-                      {summary.cycleSummary.fertilityStatus}
-                    </span>
-                  )}
-                </div>
+      {loading ? (
+        <LoadingState rows={4} />
+      ) : (
+        <div className="flex flex-col gap-5">
+          {/* Cycle Overview + Today Summary */}
+          <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-5">
+            <DashboardCard className="flex flex-col sm:flex-row items-center gap-6 sm:gap-7">
+              <CycleWheel
+                averageCycle={avgCycle}
+                periodLength={5}
+                ovulationDay={Math.max(9, avgCycle - 14)}
+                currentDay={currentDay}
+                phaseLabel={phaseMeta.name}
+                phaseColor={phaseMeta.ink}
+                sizeClass="w-[min(240px,100%)]"
+              />
 
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 my-2">
-                  <div>
-                    <div className="text-4xl font-display font-bold text-on-surface tabular-nums">
-                      {summary?.cycleSummary.currentDay != null
-                        ? `Day ${summary.cycleSummary.currentDay}`
-                        : 'No Active Cycle'}
+              <div className="flex-1 min-w-0 flex flex-col gap-3 w-full">
+                {currentDay != null ? (
+                  <>
+                    <div>
+                      <p className="hhj-eyebrow">Cycle phase</p>
+                      <h2
+                        className="font-display font-bold text-[1.6rem] mt-0.5"
+                        style={{ color: phaseMeta.ink }}
+                      >
+                        {phaseMeta.name} phase
+                      </h2>
                     </div>
-                    <p className="text-sm text-on-surface-variant mt-1">
-                      {summary?.cycleSummary.nextPeriodDate
-                        ? `Approximate next period start: ${summary.cycleSummary.nextPeriodDate}`
-                        : 'Log period dates in Period Tracker to calculate estimates.'}
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--muted)]">
+                      <span className="text-[var(--ink)] tabular-nums">
+                        Day {currentDay} of {avgCycle}
+                      </span>
+                      {summary?.cycleSummary?.fertilityStatus && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span className="text-[var(--ovu-ink)]">
+                            {summary.cycleSummary.fertilityStatus}
+                          </span>
+                        </>
+                      )}
+                      {daysToNext != null && daysToNext < 0 && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span className="text-[var(--warn)]">
+                            Period {Math.abs(daysToNext)} days late
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-3 m-0">
+                      <div className="bg-[var(--bg-secondary)] rounded-[14px] px-3.5 py-3">
+                        <dt className="text-[0.76rem] font-semibold text-[var(--muted)]">
+                          Next period
+                        </dt>
+                        <dd className="font-bold text-[var(--ink)] mt-0.5 tabular-nums">
+                          {daysToNext == null
+                            ? '—'
+                            : daysToNext < 0
+                            ? 'Expected'
+                            : `In ${daysToNext} ${daysToNext === 1 ? 'day' : 'days'}`}
+                          {nextPeriodDate && (
+                            <span className="block text-xs font-medium text-[var(--muted)]">
+                              {formatShortDate(nextPeriodDate)}
+                            </span>
+                          )}
+                        </dd>
+                      </div>
+                      <div className="bg-[var(--bg-secondary)] rounded-[14px] px-3.5 py-3">
+                        <dt className="text-[0.76rem] font-semibold text-[var(--muted)]">
+                          Average cycle
+                        </dt>
+                        <dd className="font-bold text-[var(--ink)] mt-0.5 tabular-nums">
+                          {summary?.cycleSummary?.averageCycleLength != null
+                            ? `${summary.cycleSummary.averageCycleLength} days`
+                            : '—'}
+                          <span className="block text-xs font-medium text-[var(--muted)]">
+                            From API history
+                          </span>
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <p className="text-[0.86rem] text-[var(--muted)] leading-relaxed">
+                      {phaseMeta.tip}
+                    </p>
+                  </>
+                ) : (
+                  <div>
+                    <h2 className="font-display font-bold text-xl text-[var(--ink)] flex items-center gap-2">
+                      <span
+                        className="w-2.5 h-2.5 rounded-sm bg-[var(--module-period)]"
+                        aria-hidden="true"
+                      />
+                      <span>Start with your last period</span>
+                    </h2>
+                    <p className="text-sm text-[var(--muted)] mt-1.5 leading-relaxed">
+                      Log period dates via Period Tracker so your Spring Boot backend can compute your cycle day, phase, and estimated next period.
                     </p>
                   </div>
-                  <div className="bg-surface-container-low px-4 py-3 rounded-xl text-left sm:text-right">
-                    <span className="text-xs text-on-surface-variant block">Next Period In</span>
-                    <span className="text-xl font-display font-semibold text-primary tabular-nums">
-                      {summary?.cycleSummary.daysUntilNextPeriod != null
-                        ? `${summary.cycleSummary.daysUntilNextPeriod} Days`
-                        : '—'}
-                    </span>
-                  </div>
+                )}
+
+                <div>
+                  <Link
+                    to="/period-tracker"
+                    className="inline-flex items-center justify-center min-h-[36px] px-3.5 py-1.5 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-[var(--ink)] text-sm font-semibold transition-colors"
+                  >
+                    {currentDay != null ? 'Open calendar' : 'Log last period'}
+                  </Link>
                 </div>
               </div>
+            </DashboardCard>
 
-              <div className="mt-6">
-                <div className="flex justify-between text-xs text-on-surface-variant mb-2">
-                  <span>Menstrual</span>
-                  <span>Follicular</span>
-                  <span>Ovulation</span>
-                  <span>Luteal</span>
-                </div>
-                <div className="w-full h-2.5 bg-surface-container rounded-full overflow-hidden flex gap-1">
-                  <div
-                    className={`h-full w-1/4 rounded-l-full ${
-                      summary?.cycleSummary.phase === 'Menstrual' ? 'bg-primary' : 'bg-surface-variant'
-                    }`}
-                  />
-                  <div
-                    className={`h-full w-1/4 ${
-                      summary?.cycleSummary.phase === 'Follicular' ? 'bg-primary' : 'bg-surface-variant'
-                    }`}
-                  />
-                  <div
-                    className={`h-full w-1/4 ${
-                      summary?.cycleSummary.phase === 'Ovulation' ? 'bg-primary' : 'bg-surface-variant'
-                    }`}
-                  />
-                  <div
-                    className={`h-full w-1/4 rounded-r-full ${
-                      summary?.cycleSummary.phase === 'Luteal' ? 'bg-primary' : 'bg-surface-variant'
-                    }`}
-                  />
-                </div>
-              </div>
-            </section>
+            <DashboardCard title="Today's summary" subtitle={todayFormatted}>
+              <ul className="divide-y divide-[var(--line)]">
+                {checklist.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.to}>
+                      <Link
+                        to={item.to}
+                        className="flex items-center justify-between gap-3 py-2.5 text-[var(--ink)] hover:opacity-85 transition-opacity"
+                      >
+                        <span className="flex items-center gap-3 min-w-0">
+                          <span
+                            className="w-[34px] h-[34px] rounded-[10px] grid place-items-center shrink-0"
+                            style={{
+                              backgroundColor: item.done ? 'var(--ovu-soft)' : 'var(--bg-secondary)',
+                              color: item.done ? 'var(--ovu-ink)' : item.accent,
+                            }}
+                          >
+                            {item.done ? (
+                              <Check className="w-4 h-4" aria-hidden="true" />
+                            ) : (
+                              <Icon className="w-4 h-4" aria-hidden="true" />
+                            )}
+                          </span>
+                          <span className="min-w-0">
+                            <b className="block text-sm font-semibold text-[var(--ink)]">
+                              {item.label}
+                            </b>
+                            <span className="block text-xs text-[var(--muted)] truncate">
+                              {item.sub}
+                            </span>
+                          </span>
+                        </span>
+                        <ChevronRight
+                          className="w-4 h-4 text-[var(--muted)] shrink-0"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </DashboardCard>
+          </div>
 
-            {/* Mood & Wellness Summary (Span 5) */}
-            <section className="lg:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
+          {/* Middle 3 Summary Cards: Water / Mood & Wellness / Nutrition */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {/* Water (#70B8C8) */}
+            <DashboardCard
+              title="Water intake"
+              subtitle={
+                waterTarget > 0
+                  ? `${waterPercent}% of ${waterTarget} ml goal`
+                  : 'Target awaiting /api/water'
+              }
+              accentColor="var(--module-water)"
+              icon={<Droplets className="w-5 h-5 text-[var(--module-water)] shrink-0" aria-hidden="true" />}
+              className="flex flex-col justify-between gap-3"
+            >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display text-lg font-semibold text-on-surface">
-                    Mood &amp; Wellness Summary
-                  </h2>
-                  <Smile className="w-5 h-5 text-surface-tint" aria-hidden="true" />
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-surface-container-low p-4 rounded-xl">
-                    <span className="text-xs text-on-surface-variant block mb-1">Mood / Energy</span>
-                    <span className="text-lg font-display font-semibold text-on-surface">
-                      {summary?.wellnessSummary.mood ?? summary?.wellnessSummary.energyLevel ?? '—'}
-                    </span>
-                  </div>
-                  <div className="bg-surface-container-low p-4 rounded-xl">
-                    <span className="text-xs text-on-surface-variant block mb-1">Sleep Duration</span>
-                    <span className="text-lg font-display font-semibold text-on-surface tabular-nums">
-                      {summary?.wellnessSummary.sleepHours != null
-                        ? `${summary.wellnessSummary.sleepHours} hrs`
-                        : '—'}
-                    </span>
-                  </div>
+                <b className="font-display text-[1.9rem] font-bold text-[var(--ink)] tabular-nums">
+                  {waterIntake}{' '}
+                  <span className="text-base font-medium text-[var(--muted)]">ml</span>
+                </b>
+                <div className="my-3">
+                  <ProgressIndicator
+                    value={waterIntake}
+                    max={waterTarget || 2000}
+                    accentColor="var(--module-water)"
+                    label="Daily water intake progress"
+                  />
                 </div>
               </div>
-              <div className="bg-surface-container-low p-4 rounded-xl flex items-center justify-between gap-3">
-                <p className="text-xs text-on-surface-variant">
-                  {summary?.wellnessSummary.insight ||
-                    'Record your daily mood, sleep duration, and stress level in Mood & Wellness.'}
-                </p>
-                <Link
-                  to="/wellness"
-                  className="text-xs font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleQuickWater(250)}
+                  className="min-h-[34px] px-3 py-1 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--ink)] cursor-pointer"
                 >
-                  Open
+                  +250 ml
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleQuickWater(500)}
+                  className="min-h-[34px] px-3 py-1 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--ink)] cursor-pointer"
+                >
+                  +500 ml
+                </button>
+                <Link
+                  to="/water"
+                  className="min-h-[34px] px-3 py-1 rounded-[10px] text-xs font-semibold text-[var(--plum)] hover:bg-[var(--surface2)] inline-flex items-center"
+                >
+                  Details
                 </Link>
               </div>
-            </section>
+            </DashboardCard>
 
-            {/* Water Intake (Span 4) */}
-            <section className="lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
+            {/* Mood & Wellness (#A8BCA4) */}
+            <DashboardCard
+              title="Mood & sleep"
+              subtitle={summary?.wellnessSummary?.mood ? 'Latest check-in' : 'No entry yet'}
+              accentColor="var(--module-wellness)"
+              icon={<Smile className="w-5 h-5 text-[var(--module-wellness)] shrink-0" aria-hidden="true" />}
+              className="flex flex-col justify-between gap-3"
+            >
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-display text-lg font-semibold text-on-surface">Water Intake</h2>
-                  <Droplets className="w-5 h-5 text-secondary" aria-hidden="true" />
-                </div>
-                <div className="flex items-baseline gap-1.5 my-2 tabular-nums">
-                  <span className="text-3xl font-display font-bold text-on-surface">
-                    {summary ? waterIntake.toLocaleString() : '0'}
-                  </span>
-                  <span className="text-sm text-on-surface-variant">
-                    / {waterTarget > 0 ? `${waterTarget.toLocaleString()} ml` : '— ml'}
-                  </span>
-                </div>
-                <p className="text-xs text-on-surface-variant mb-4">
-                  {summary
-                    ? `${Math.max(0, waterTarget - waterIntake)} ml remaining for today's goal.`
-                    : 'Connect backend (GET /api/water) to sync daily hydration.'}
-                </p>
-              </div>
-              <div>
-                <div className="w-full h-3 bg-surface-container rounded-full overflow-hidden mb-4">
-                  <div
-                    className="h-full bg-secondary rounded-full transition-all"
-                    style={{ width: `${waterPercent}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleQuickWater(250)}
-                      className="px-3 py-1.5 rounded-lg bg-secondary-fixed text-on-secondary-fixed text-xs font-medium hover:opacity-90 cursor-pointer"
-                    >
-                      + 250 ml
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleQuickWater(500)}
-                      className="px-3 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-medium cursor-pointer"
-                    >
-                      + 500 ml
-                    </button>
-                  </div>
-                  <span className="text-xs font-semibold text-secondary tabular-nums">
-                    {waterPercent}%
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            {/* Recent Symptoms (Span 4) */}
-            <section className="lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-display text-lg font-semibold text-on-surface">
-                    Recent PCOS Symptoms
-                  </h2>
-                  <HeartPulse className="w-5 h-5 text-surface-tint" aria-hidden="true" />
-                </div>
-                {summary?.latestSymptom ? (
-                  <div className="bg-surface-container-low p-4 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-on-surface">
-                        {summary.latestSymptom.symptoms.join(', ') || 'Symptom Check-in'}
-                      </span>
-                      <span className="text-primary font-medium">
-                        Severity {summary.latestSymptom.severity}/5
-                      </span>
-                    </div>
-                    <p className="text-xs text-on-surface-variant">
-                      {summary.latestSymptom.date} · Pain {summary.latestSymptom.painLevel}/10
-                    </p>
-                    {summary.latestSymptom.observations && (
-                      <p className="text-xs text-on-surface-variant line-clamp-2">
-                        {summary.latestSymptom.observations}
+                {summary?.wellnessSummary?.mood ? (
+                  <div className="flex items-center gap-3.5 py-1">
+                    <span className="text-[var(--plum)] shrink-0">
+                      <MoodFaceSvg mood={summary.wellnessSummary.mood} className="w-11 h-11" />
+                    </span>
+                    <div>
+                      <b className="text-lg font-bold text-[var(--ink)]">
+                        {summary.wellnessSummary.mood}
+                      </b>
+                      <p className="text-xs text-[var(--muted)] tabular-nums">
+                        {summary.wellnessSummary.sleepHours != null
+                          ? `${summary.wellnessSummary.sleepHours} h sleep`
+                          : 'Sleep not recorded'}
+                        {summary.wellnessSummary.energyLevel
+                          ? ` · energy ${summary.wellnessSummary.energyLevel}`
+                          : ''}
                       </p>
-                    )}
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-on-surface-variant py-4">
-                    No PCOS symptom records loaded yet. Log symptoms via the PCOS Symptom Tracker.
-                  </p>
+                  <p className="text-sm text-[var(--muted)] py-1">No entries yet.</p>
                 )}
               </div>
-              <div className="pt-4 flex justify-end">
+
+              <div>
                 <Link
-                  to="/pcos-tracker"
-                  className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
+                  to="/wellness"
+                  className="inline-flex items-center justify-center min-h-[34px] px-3 py-1 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--ink)]"
                 >
-                  <span>View Symptoms</span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  {summary?.wellnessSummary?.mood ? 'Update mood' : 'Log mood'}
                 </Link>
               </div>
-            </section>
+            </DashboardCard>
 
-            {/* Nutrition Summary (Span 4) */}
-            <section className="lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
+            {/* Nutrition (#D8AA65) */}
+            <DashboardCard
+              title="Nutrition"
+              subtitle={
+                kcalTarget > 0 ? `Target ${kcalTarget} kcal` : 'Target awaiting /api/nutrition'
+              }
+              accentColor="var(--module-nutrition)"
+              icon={<Utensils className="w-5 h-5 text-[var(--module-nutrition)] shrink-0" aria-hidden="true" />}
+              className="flex flex-col justify-between gap-3"
+            >
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-display text-lg font-semibold text-on-surface">
-                    Nutrition Summary
-                  </h2>
-                  <Utensils className="w-5 h-5 text-tertiary" aria-hidden="true" />
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-on-surface-variant">Daily Calories</span>
-                      <span className="font-medium text-on-surface tabular-nums">
-                        {summary
-                          ? `${summary.nutritionSummary.caloriesConsumed} / ${summary.nutritionSummary.caloriesTarget} kcal`
-                          : '0 / 0 kcal'}
-                      </span>
-                    </div>
-                    <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-tertiary rounded-full"
-                        style={{
-                          width: `${
-                            summary && summary.nutritionSummary.caloriesTarget > 0
-                              ? Math.min(
-                                  100,
-                                  Math.round(
-                                    (summary.nutritionSummary.caloriesConsumed /
-                                      summary.nutritionSummary.caloriesTarget) *
-                                      100,
-                                  ),
-                                )
-                              : 0
-                          }%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-on-surface-variant">
-                    {summary?.nutritionSummary.sugarStatus
-                      ? `Status: ${summary.nutritionSummary.sugarStatus}`
-                      : 'Log breakfast, lunch, dinner, and snacks in Nutrition & Diet.'}
-                  </p>
+                <b className="font-display text-[1.9rem] font-bold text-[var(--ink)] tabular-nums">
+                  {kcalConsumed}{' '}
+                  <span className="text-base font-medium text-[var(--muted)]">kcal</span>
+                </b>
+                <div className="my-3">
+                  <ProgressIndicator
+                    value={kcalConsumed}
+                    max={kcalTarget || 2000}
+                    accentColor="var(--module-nutrition)"
+                    label="Daily nutrition calorie progress"
+                  />
                 </div>
               </div>
-              <div className="pt-4 flex justify-end">
+
+              <div>
                 <Link
                   to="/nutrition"
-                  className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
+                  className="inline-flex items-center justify-center min-h-[34px] px-3 py-1 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--ink)]"
                 >
-                  <span>Open Food Diary</span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  Log a meal
                 </Link>
               </div>
-            </section>
+            </DashboardCard>
+          </div>
 
-            {/* Real Cycle Chart (Span 7) */}
-            <section className="lg:col-span-7 bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="font-display text-lg font-semibold text-on-surface">
-                    Historical Cycle Lengths
-                  </h2>
-                  <p className="text-xs text-on-surface-variant">
-                    Generated directly from your Spring Boot /api/dashboard cycle history
-                  </p>
-                </div>
-                <span className="text-xs font-medium text-on-surface-variant tabular-nums">
-                  Avg:{' '}
-                  {summary?.cycleSummary.averageCycleLength != null
-                    ? `${summary.cycleSummary.averageCycleLength} Days`
-                    : '—'}
-                </span>
-              </div>
-
+          {/* Bottom Split: Cycle Lengths Chart + Real Derived Insights */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <DashboardCard
+              title="Cycle lengths"
+              subtitle="Historical cycle days returned by /api/dashboard. Dashed line marks average."
+              accentColor="var(--module-period)"
+            >
               {cycleHistory.length > 0 ? (
-                <div className="h-48 flex items-end justify-between gap-3 pt-4 px-2">
-                  {cycleHistory.map((item) => {
-                    const heightPct = Math.max(20, Math.round((item.lengthDays / maxCycleDays) * 100));
+                <svg
+                  viewBox="0 0 560 190"
+                  className="w-full h-auto block overflow-visible"
+                  role="img"
+                  aria-label="Recent cycle lengths in days"
+                >
+                  <line x1="6" x2="554" y1="164" y2="164" stroke="var(--line)" />
+                  {summary?.cycleSummary?.averageCycleLength && (
+                    <line
+                      x1="6"
+                      x2="554"
+                      y1={164 - (summary.cycleSummary.averageCycleLength / maxCycleChart) * 140}
+                      y2={164 - (summary.cycleSummary.averageCycleLength / maxCycleChart) * 140}
+                      stroke="var(--muted)"
+                      strokeDasharray="4 5"
+                      opacity="0.7"
+                    />
+                  )}
+                  {cycleHistory.map((item, idx) => {
+                    const n = cycleHistory.length;
+                    const iw = 548;
+                    const bw = Math.min(54, (iw / n) * 0.62);
+                    const cx = 6 + (iw / n) * (idx + 0.5);
+                    const bh = Math.max(0, (item.lengthDays / maxCycleChart) * 140);
+                    const y = 164 - bh;
+                    const isLast = idx === n - 1;
                     return (
-                      <div
-                        key={item.month}
-                        className="flex-1 flex flex-col items-center justify-end h-full gap-1.5"
-                      >
-                        <span className="text-xs text-on-surface-variant tabular-nums">
-                          {item.lengthDays}d
-                        </span>
-                        <div className="w-full flex-1 flex items-end">
-                          <div
-                            className="w-full bg-primary/85 rounded-t-lg transition-all"
-                            style={{ height: `${heightPct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-on-surface-variant">{item.month}</span>
-                      </div>
+                      <g key={item.month}>
+                        <rect
+                          x={(cx - bw / 2).toFixed(1)}
+                          y={y.toFixed(1)}
+                          width={bw.toFixed(1)}
+                          height={bh.toFixed(1)}
+                          rx="7"
+                          fill={isLast ? 'var(--module-period)' : 'var(--bar)'}
+                        />
+                        <text
+                          x={cx.toFixed(1)}
+                          y={(y - 6).toFixed(1)}
+                          textAnchor="middle"
+                          className="text-[11px] font-semibold fill-[var(--muted)] tabular-nums"
+                        >
+                          {item.lengthDays}
+                        </text>
+                        <text
+                          x={cx.toFixed(1)}
+                          y="183"
+                          textAnchor="middle"
+                          className="text-[11px] font-semibold fill-[var(--muted)]"
+                        >
+                          {item.month}
+                        </text>
+                      </g>
                     );
                   })}
-                </div>
+                </svg>
               ) : (
-                <EmptyStateCard
+                <EmptyState
                   title="No Cycle Chart Data Yet"
-                  description="Once your Spring Boot backend returns cycle history records, your real cycle length bars will render here."
+                  description="Log at least two periods on your Spring Boot backend to render your cycle length chart."
                   endpoint="GET /api/dashboard"
                 />
               )}
-            </section>
+            </DashboardCard>
 
-            {/* Recent Journal History (Span 5) */}
-            <section className="lg:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display text-lg font-semibold text-on-surface">
-                    Journal History
-                  </h2>
-                  <BookOpen className="w-5 h-5 text-surface-tint" aria-hidden="true" />
+            <DashboardCard
+              title="Insights"
+              subtitle="Derived directly from your logged API records"
+              accentColor="var(--brand-champagne)"
+            >
+              {derivedInsights.length > 0 ? (
+                <div className="divide-y divide-[var(--line)]">
+                  {derivedInsights.map((ins, i) => (
+                    <div key={i} className="flex items-start gap-3 py-3 first:pt-1 last:pb-1">
+                      <Sparkles
+                        className="w-5 h-5 text-[var(--brand-champagne)] shrink-0 mt-0.5"
+                        aria-hidden="true"
+                      />
+                      <p className="text-sm text-[var(--ink)] leading-relaxed">{ins.text}</p>
+                    </div>
+                  ))}
                 </div>
-
-                {summary?.recentJournalEntries && summary.recentJournalEntries.length > 0 ? (
-                  <div className="space-y-3">
-                    {summary.recentJournalEntries.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="bg-surface-container-low p-3.5 rounded-xl space-y-1"
-                      >
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="text-sm font-semibold text-on-surface truncate">
-                            {entry.title}
-                          </span>
-                          <span className="text-xs text-on-surface-variant whitespace-nowrap tabular-nums">
-                            {entry.entryDate.slice(0, 10)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-on-surface-variant line-clamp-2">
-                          {entry.content}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-on-surface-variant py-6">
-                    No journal entries loaded yet. Record personal reflections in Health Journal.
-                  </p>
-                )}
-              </div>
-
-              <div className="pt-4 flex justify-end">
-                <Link
-                  to="/journal"
-                  className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  <span>Open Journal</span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                </Link>
-              </div>
-            </section>
+              ) : (
+                <EmptyState
+                  title="Insights appear as you log"
+                  description="Connect your Spring Boot API and record period, mood, or symptom entries to surface personal insights here."
+                  endpoint="GET /api/dashboard"
+                />
+              )}
+            </DashboardCard>
           </div>
-        )}
-      </div>
+
+          {/* Recent Journal */}
+          <DashboardCard
+            title="Recent journal"
+            accentColor="var(--module-journal)"
+            action={
+              <Link
+                to="/journal"
+                className="inline-flex items-center justify-center min-h-[34px] px-3 py-1 rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-xs font-semibold text-[var(--ink)]"
+              >
+                Open journal
+              </Link>
+            }
+          >
+            {summary?.recentJournalEntries && summary.recentJournalEntries.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {summary.recentJournalEntries.slice(0, 2).map((entry) => (
+                  <div key={entry.id} className="hhj-card-flat p-4">
+                    <span className="text-xs text-[var(--muted)]">
+                      {formatShortDate(entry.entryDate)} · {entry.category}
+                    </span>
+                    <h3 className="font-display font-bold text-base text-[var(--ink)] mt-1 mb-1.5">
+                      {entry.title}
+                    </h3>
+                    <p className="text-sm text-[var(--muted)] line-clamp-3">{entry.content}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title="No journal entries loaded yet"
+                description="Write reflections, symptom notes, or questions for your care team in Health Journal."
+                endpoint="GET /api/journal"
+                actionLabel="Write your first entry"
+                onAction={() => navigate('/journal')}
+              />
+            )}
+          </DashboardCard>
+        </div>
+      )}
 
       <ToastBanner
         message={toast?.message ?? null}

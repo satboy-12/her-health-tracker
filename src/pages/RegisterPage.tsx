@@ -10,7 +10,9 @@ import {
   User,
 } from 'lucide-react';
 import { BrandLogo } from '../components/BrandLogo';
-import { ApiIntegrationBanner } from '../components/ApiIntegrationBanner';
+import { ErrorState } from '../components/ErrorState';
+import { FormInput } from '../components/FormInput';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -19,7 +21,7 @@ import {
 } from '../utils/validation';
 
 export function RegisterPage() {
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState('');
@@ -33,10 +35,25 @@ export function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<ApiError | string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
 
   const strength = useMemo(() => evaluatePasswordStrength(password), [password]);
   const passwordsMatch = confirmPassword.length > 0 && confirmPassword === password;
   const passwordsMismatch = confirmPassword.length > 0 && confirmPassword !== password;
+
+  const handleGoogleSignIn = async () => {
+    setApiError(null);
+    setGoogleBusy(true);
+    try {
+      await loginWithGoogle();
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unable to sign in with Google.';
+      setApiError(msg);
+    } finally {
+      setGoogleBusy(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,33 +94,84 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-on-background flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg p-8 sm:p-10 flex flex-col gap-5">
-        <div className="flex flex-col items-center text-center gap-2">
-          <Link to="/" className="mb-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
-            <BrandLogo className="w-12 h-12" />
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center py-8 sm:py-12">
+      <div className="page-container flex flex-col items-center">
+        <div className="w-full max-w-[500px] flex flex-col gap-5">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2.5 font-display font-bold text-[var(--ink)] self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-champagne)] rounded-xl"
+          >
+            <BrandLogo className="w-9 h-9" />
+            <span>Her Health Journey</span>
           </Link>
-          <h1 className="font-display text-2xl font-semibold text-on-surface">
-            Her Health Journey
-          </h1>
-          <p className="text-sm text-on-surface-variant">
-            Create your secure, private health account
-          </p>
-        </div>
 
-        {apiError && (
-          <ApiIntegrationBanner error={apiError} expectedEndpoint="POST /api/auth/register" />
-        )}
+          <div className="hhj-card p-5 sm:p-8 flex flex-col gap-5">
+            <div>
+              <p className="hhj-eyebrow">Quick setup</p>
+              <h1 className="font-display font-bold text-2xl sm:text-[1.75rem] text-[var(--ink)] mt-1">
+                Create your health account
+              </h1>
+              <p className="text-sm text-[var(--muted)] mt-1">
+                Start immediately with Google + Cloud Firestore, or register with a Spring Boot backend account.
+              </p>
+            </div>
 
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="reg-fullname" className="text-xs font-medium text-on-surface-variant">
-              Full Name
-            </label>
-            <div className="relative flex items-center">
-              <User className="w-4 h-4 text-outline absolute left-3.5" aria-hidden="true" />
-              <input
+            {apiError && (
+              <ErrorState error={apiError} expectedEndpoint="Firebase Auth / POST /api/auth/register" />
+            )}
+
+            <button
+              type="button"
+              onClick={() => void handleGoogleSignIn()}
+              disabled={googleBusy || submitting}
+              className="gsi-material-button"
+            >
+              <div className="gsi-material-button-state" />
+              <div className="gsi-material-button-content-wrapper">
+                <div className="gsi-material-button-icon">
+                  <svg
+                    version="1.1"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 48 48"
+                    style={{ display: 'block' }}
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill="#EA4335"
+                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                    />
+                    <path fill="none" d="M0 0h48v48H0z" />
+                  </svg>
+                </div>
+                <span className="gsi-material-button-contents">
+                  {googleBusy ? 'Connecting to Google...' : 'Sign in with Google'}
+                </span>
+                <span style={{ display: 'none' }}>Sign in with Google</span>
+              </div>
+            </button>
+
+            <div className="flex items-center gap-3 text-xs text-[var(--muted)]">
+              <span className="h-px flex-1 bg-[var(--line)]" />
+              <span>or Spring Boot registration</span>
+              <span className="h-px flex-1 bg-[var(--line)]" />
+            </div>
+
+            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+              <FormInput
                 id="reg-fullname"
+                label="Full Name"
                 type="text"
                 autoComplete="name"
                 value={fullName}
@@ -111,27 +179,14 @@ export function RegisterPage() {
                   setFullName(e.target.value);
                   if (errors.fullName) setErrors((p) => ({ ...p, fullName: '' }));
                 }}
-                placeholder="Eleanor Vance"
-                className={`w-full bg-surface-container-low pl-10 pr-4 py-2.5 rounded-xl text-sm text-on-surface border outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/30 ${
-                  errors.fullName ? 'border-error' : 'border-outline-variant focus:border-primary'
-                }`}
+                placeholder="Your full name"
+                icon={<User className="w-4 h-4" aria-hidden="true" />}
+                error={errors.fullName}
               />
-            </div>
-            {errors.fullName && (
-              <p className="text-xs text-error" role="alert">
-                {errors.fullName}
-              </p>
-            )}
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="reg-email" className="text-xs font-medium text-on-surface-variant">
-              Email Address
-            </label>
-            <div className="relative flex items-center">
-              <Mail className="w-4 h-4 text-outline absolute left-3.5" aria-hidden="true" />
-              <input
+              <FormInput
                 id="reg-email"
+                label="Email Address"
                 type="email"
                 autoComplete="email"
                 value={email}
@@ -139,95 +194,71 @@ export function RegisterPage() {
                   setEmail(e.target.value);
                   if (errors.email) setErrors((p) => ({ ...p, email: '' }));
                 }}
-                placeholder="jane.doe@example.com"
-                className={`w-full bg-surface-container-low pl-10 pr-4 py-2.5 rounded-xl text-sm text-on-surface border outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/30 ${
-                  errors.email ? 'border-error' : 'border-outline-variant focus:border-primary'
-                }`}
+                placeholder="name@example.com"
+                icon={<Mail className="w-4 h-4" aria-hidden="true" />}
+                error={errors.email}
               />
-            </div>
-            {errors.email && (
-              <p className="text-xs text-error" role="alert">
-                {errors.email}
-              </p>
-            )}
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="reg-password" className="text-xs font-medium text-on-surface-variant">
-              Password
-            </label>
-            <div className="relative flex items-center">
-              <Lock className="w-4 h-4 text-outline absolute left-3.5" aria-hidden="true" />
-              <input
-                id="reg-password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password) setErrors((p) => ({ ...p, password: '' }));
-                }}
-                placeholder="Create a strong password"
-                className={`w-full bg-surface-container-low pl-10 pr-11 py-2.5 rounded-xl text-sm text-on-surface border outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/30 ${
-                  errors.password ? 'border-error' : 'border-outline-variant focus:border-primary'
-                }`}
-              />
-              <button
-                type="button"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 p-1 text-outline hover:text-on-surface cursor-pointer"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" aria-hidden="true" />
-                ) : (
-                  <Eye className="w-4 h-4" aria-hidden="true" />
-                )}
-              </button>
-            </div>
-            <div className="space-y-1 pt-0.5">
-              <div className="flex gap-1 h-1 w-full bg-surface-container rounded-full overflow-hidden">
-                {[1, 2, 3, 4].map((segment) => (
-                  <div
-                    key={segment}
-                    className={`w-1/4 transition-colors ${
-                      segment <= strength.score ? 'bg-tertiary' : 'bg-surface-container-high'
+              <div className="flex flex-col gap-1.5">
+                <FormInput
+                  id="reg-password"
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors((p) => ({ ...p, password: '' }));
+                  }}
+                  placeholder="Create a strong password"
+                  icon={<Lock className="w-4 h-4" aria-hidden="true" />}
+                  error={errors.password}
+                  trailing={
+                    <button
+                      type="button"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="p-1 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" aria-hidden="true" />
+                      ) : (
+                        <Eye className="w-4 h-4" aria-hidden="true" />
+                      )}
+                    </button>
+                  }
+                />
+
+                <div className="space-y-1 pt-0.5">
+                  <div className="flex gap-1 h-1.5 w-full bg-[var(--surface2)] rounded-full overflow-hidden">
+                    {[1, 2, 3, 4].map((segment) => (
+                      <div
+                        key={segment}
+                        className={`w-1/4 transition-colors ${
+                          segment <= strength.score ? 'bg-[var(--good)]' : 'bg-[var(--line)]'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p
+                    className={`text-xs font-medium ${
+                      strength.tone === 'error'
+                        ? 'text-[var(--bad)]'
+                        : strength.tone === 'secondary'
+                        ? 'text-[var(--fol-ink)]'
+                        : strength.tone === 'tertiary'
+                        ? 'text-[var(--good)]'
+                        : 'text-[var(--muted)]'
                     }`}
-                  />
-                ))}
+                  >
+                    {strength.label}
+                  </p>
+                </div>
               </div>
-              <p
-                className={`text-xs ${
-                  strength.tone === 'error'
-                    ? 'text-error'
-                    : strength.tone === 'secondary'
-                    ? 'text-secondary'
-                    : strength.tone === 'tertiary'
-                    ? 'text-tertiary'
-                    : 'text-outline'
-                }`}
-              >
-                {strength.label}
-              </p>
-            </div>
-            {errors.password && (
-              <p className="text-xs text-error" role="alert">
-                {errors.password}
-              </p>
-            )}
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="reg-confirm-password"
-              className="text-xs font-medium text-on-surface-variant"
-            >
-              Confirm Password
-            </label>
-            <div className="relative flex items-center">
-              <Lock className="w-4 h-4 text-outline absolute left-3.5" aria-hidden="true" />
-              <input
+              <FormInput
                 id="reg-confirm-password"
+                label="Confirm Password"
                 type={showConfirmPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 value={confirmPassword}
@@ -236,74 +267,68 @@ export function RegisterPage() {
                   if (errors.confirmPassword) setErrors((p) => ({ ...p, confirmPassword: '' }));
                 }}
                 placeholder="Re-enter your password"
-                className={`w-full bg-surface-container-low pl-10 pr-16 py-2.5 rounded-xl text-sm text-on-surface border outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/30 ${
+                icon={<Lock className="w-4 h-4" aria-hidden="true" />}
+                error={
                   passwordsMismatch || errors.confirmPassword
-                    ? 'border-error'
-                    : 'border-outline-variant focus:border-primary'
-                }`}
+                    ? errors.confirmPassword || 'Passwords do not match.'
+                    : null
+                }
+                trailing={
+                  <>
+                    {passwordsMatch && (
+                      <CheckCircle2 className="w-4 h-4 text-[var(--good)]" aria-hidden="true" />
+                    )}
+                    <button
+                      type="button"
+                      aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="p-1 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" aria-hidden="true" />
+                      ) : (
+                        <Eye className="w-4 h-4" aria-hidden="true" />
+                      )}
+                    </button>
+                  </>
+                }
               />
-              <div className="absolute right-3 flex items-center gap-1">
-                {passwordsMatch && (
-                  <CheckCircle2 className="w-4 h-4 text-tertiary" aria-hidden="true" />
+
+              <div className="flex flex-col gap-1">
+                <label className="flex items-start gap-2.5 text-xs text-[var(--muted)] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={acceptedPrivacy}
+                    onChange={(e) => {
+                      setAcceptedPrivacy(e.target.checked);
+                      if (errors.acceptedPrivacy) setErrors((p) => ({ ...p, acceptedPrivacy: '' }));
+                    }}
+                    className="w-4 h-4 mt-0.5 rounded accent-[var(--plum)] cursor-pointer"
+                  />
+                  <span>
+                    I consent to private health record processing through my Spring Boot backend account.
+                  </span>
+                </label>
+                {errors.acceptedPrivacy && (
+                  <p className="text-xs font-medium text-[var(--bad)]" role="alert">
+                    {errors.acceptedPrivacy}
+                  </p>
                 )}
-                <button
-                  type="button"
-                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                  onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  className="p-1 text-outline hover:text-on-surface cursor-pointer"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-4 h-4" aria-hidden="true" />
-                  ) : (
-                    <Eye className="w-4 h-4" aria-hidden="true" />
-                  )}
-                </button>
               </div>
+
+              <PrimaryButton type="submit" disabled={submitting} className="w-full mt-1">
+                <span>{submitting ? 'Creating Account...' : 'Create Account'}</span>
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </PrimaryButton>
+            </form>
+
+            <div className="text-center pt-3 border-t border-[var(--line)] text-xs text-[var(--muted)]">
+              Already have an account?{' '}
+              <Link to="/login" className="text-[var(--plum)] font-bold hover:underline">
+                Log in
+              </Link>
             </div>
-            {(passwordsMismatch || errors.confirmPassword) && (
-              <p className="text-xs text-error" role="alert">
-                {errors.confirmPassword || 'Passwords do not match.'}
-              </p>
-            )}
           </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="flex items-start gap-2.5 text-xs text-on-surface-variant cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={acceptedPrivacy}
-                onChange={(e) => {
-                  setAcceptedPrivacy(e.target.checked);
-                  if (errors.acceptedPrivacy) setErrors((p) => ({ ...p, acceptedPrivacy: '' }));
-                }}
-                className="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer"
-              />
-              <span>
-                I consent to private health record processing through my Spring Boot backend account.
-              </span>
-            </label>
-            {errors.acceptedPrivacy && (
-              <p className="text-xs text-error" role="alert">
-                {errors.acceptedPrivacy}
-              </p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full mt-1 py-3 px-6 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-          >
-            <span>{submitting ? 'Creating Account...' : 'Create Account'}</span>
-            <ArrowRight className="w-4 h-4" aria-hidden="true" />
-          </button>
-        </form>
-
-        <div className="text-center pt-2 border-t border-outline-variant/60 text-xs text-on-surface-variant">
-          Already have an account?{' '}
-          <Link to="/login" className="text-primary font-semibold hover:underline">
-            Log in
-          </Link>
         </div>
       </div>
     </div>

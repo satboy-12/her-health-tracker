@@ -1,3 +1,44 @@
+export const BLUEPRINT_LIMITS = {
+  USER_ID_MAX: 128,
+  FULL_NAME_MAX: 120,
+  EMAIL_MAX: 254,
+  PHONE_MAX: 30,
+  DATE_LEN: 10,
+  DATETIME_MAX: 40,
+  TITLE_MAX: 120,
+  CONTENT_MAX: 5000,
+  NOTES_MAX: 2000,
+  FOOD_NAME_MAX: 120,
+  PORTION_MAX: 60,
+  SYMPTOM_LIST_MAX: 20,
+  SYMPTOM_ITEM_MAX: 60,
+  WATER_MIN_ML: 1,
+  WATER_MAX_ML: 5000,
+  TARGET_MIN: 500,
+  TARGET_MAX: 10000,
+} as const;
+
+export const BLUEPRINT_PATTERNS = {
+  ID: /^[a-zA-Z0-9_-]{1,128}$/,
+  ISO_DATE: /^\d{4}-\d{2}-\d{2}$/,
+  ISO_DATETIME: /^\d{4}-\d{2}-\d{2}.*$/,
+  EMAIL: /^[^@\s]+@[^@\s]+\.[^@\s]+$/,
+} as const;
+
+export function sanitizeBoundedText(value: unknown, maxLen: number): string {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, maxLen);
+}
+
+export function sanitizeSymptomList(list: unknown): string[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim().slice(0, BLUEPRINT_LIMITS.SYMPTOM_ITEM_MAX))
+    .filter(Boolean)
+    .slice(0, BLUEPRINT_LIMITS.SYMPTOM_LIST_MAX);
+}
+
 export interface PasswordStrengthResult {
   score: 0 | 1 | 2 | 3 | 4;
   label: string;
@@ -9,8 +50,7 @@ export function validateEmail(email: string): string | null {
   if (!trimmed) {
     return 'Email address is required.';
   }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(trimmed)) {
+  if (trimmed.length > BLUEPRINT_LIMITS.EMAIL_MAX || !BLUEPRINT_PATTERNS.EMAIL.test(trimmed)) {
     return 'Please enter a valid email address.';
   }
   return null;
