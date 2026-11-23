@@ -1,0 +1,17 @@
+{
+  "name": "her-health-journey",
+  "version": "1.0.0",
+  "description": "HER HEALTH JOURNEY - Dual-Platform Women's Health Tracking System",
+  "scripts": {
+    "start": "npx serve website",
+    "build": "echo 'Vercel build complete'"
+  },
+  "keywords": [
+    "pcos",
+    "period-tracker",
+    "wellness",
+    "health"
+  ],
+  "author": "HER HEALTH JOURNEY",
+  "license": "ISC"
+}
