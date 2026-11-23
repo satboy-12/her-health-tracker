@@ -3,27 +3,35 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/blush_background">
+    android:background="@color/bg_primary">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="20dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="PCOS Symptom Logs"
-            android:textColor="@color/deep_plum"
-            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Daily symptom, severity and energy monitoring"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvSymptomRecords"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="12dp" />
+            android:layout_marginTop="16dp" />
 
     </LinearLayout>
 
@@ -32,10 +40,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:backgroundTint="@color/primary_rose"
+        android:layout_margin="20dp"
+        android:backgroundTint="@color/button_primary"
+        android:contentDescription="Log PCOS Symptom"
         android:src="@android:drawable/ic_input_add"
-        app:tint="@color/white" />
+        app:tint="@color/button_text" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-

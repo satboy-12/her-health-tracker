@@ -3,28 +3,29 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/blush_background">
+    android:background="@color/bg_primary">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="20dp">
 
         <TextView
             android:id="@+id/tvWelcomeUser"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Welcome Back"
-            android:textColor="@color/deep_plum"
-            android:textSize="20sp"
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
             android:text="Your holistic wellness overview"
-            android:textColor="@color/secondary_dusty_pink"
+            android:textColor="@color/text_secondary"
             android:textSize="13sp" />
 
         <!-- Period Card -->
@@ -32,21 +33,21 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            app:cardCornerRadius="8dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="1dp"
-            app:cardBackgroundColor="@color/white">
+            app:cardBackgroundColor="@color/surface_primary">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="CYCLE STATUS"
-                    android:textColor="@color/secondary_dusty_pink"
+                    android:textColor="@color/module_period"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -54,43 +55,78 @@
                     android:id="@+id/tvPeriodEstimate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="6dp"
                     android:text="Calculating cycle..."
-                    android:textColor="@color/deep_plum"
+                    android:textColor="@color/text_primary"
                     android:textSize="17sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvPeriodDisclaimer"
+                    android:id="@+id/tvPeriodDetails"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Estimates are informational only"
-                    android:textColor="@color/text_muted"
-                    android:textSize="11sp" />
+                    android:text="Next period estimate is based on recorded history"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Hydration Card -->
+        <!-- PCOS Symptoms Card -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            app:cardCornerRadius="8dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="1dp"
-            app:cardBackgroundColor="@color/white">
+            app:cardBackgroundColor="@color/surface_primary">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PCOS OBSERVATIONS"
+                    android:textColor="@color/module_symptoms"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvRecentSymptom"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="No symptoms logged today"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Water Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:cardBackgroundColor="@color/surface_primary">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="HYDRATION PROGRESS"
-                    android:textColor="@color/secondary_dusty_pink"
+                    android:textColor="@color/module_water"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -98,67 +134,57 @@
                     android:id="@+id/tvWaterAmount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="0 / 2000 ml"
-                    android:textColor="@color/deep_plum"
-                    android:textSize="17sp"
+                    android:layout_marginTop="6dp"
+                    android:text="0 ml / 2000 ml"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <ProgressBar
-                    android:id="@+id/pbWaterProgress"
+                    android:id="@+id/pbWaterDashboard"
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="match_parent"
                     android:layout_height="8dp"
                     android:layout_marginTop="8dp"
-                    android:max="100"
                     android:progress="0"
-                    android:progressTint="@color/primary_rose" />
+                    android:progressTint="@color/module_water" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Mood & Symptoms Card -->
+        <!-- Mood & Wellness Card -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            app:cardCornerRadius="8dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="1dp"
-            app:cardBackgroundColor="@color/white">
+            app:cardBackgroundColor="@color/surface_primary">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="MOOD &amp; OBSERVATIONS"
-                    android:textColor="@color/secondary_dusty_pink"
+                    android:text="MOOD &amp; REST"
+                    android:textColor="@color/module_wellness"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvLatestMood"
+                    android:id="@+id/tvMoodStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Mood: Calm"
-                    android:textColor="@color/deep_plum"
-                    android:textSize="15sp" />
-
-                <TextView
-                    android:id="@+id/tvRecentSymptom"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Recent PCOS: None reported"
-                    android:textColor="@color/text_muted"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="6dp"
+                    android:text="No wellness check-in yet"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
     </LinearLayout>
 </ScrollView>
-
