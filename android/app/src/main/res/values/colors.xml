@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_rose">#C65F83</color>
+    <color name="secondary_dusty_pink">#B66F86</color>
+    <color name="deep_plum">#54243D</color>
+    <color name="blush_background">#F8E7ED</color>
+    <color name="white">#FFFFFF</color>
+    <color name="card_border">#EBE4E7</color>
+    <color name="text_muted">#666666</color>
+    <color name="error_red">#D32F2F</color>
+</resources>
+

@@ -1,0 +1,16 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.HerHealthJourney" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_rose</item>
+        <item name="colorPrimaryVariant">@color/deep_plum</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/secondary_dusty_pink</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">@color/deep_plum</item>
+        <item name="android:windowBackground">@color/blush_background</item>
+    </style>
+
+    <style name="Theme.HerHealthJourney.Splash" parent="Theme.HerHealthJourney">
+        <item name="android:windowBackground">@color/blush_background</item>
+    </style>
+</resources>
+
