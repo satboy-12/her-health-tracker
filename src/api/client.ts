@@ -4,6 +4,8 @@ export type ApiErrorCode =
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'VALIDATION_ERROR'
+  | 'CONFLICT'
+  | 'METHOD_NOT_ALLOWED'
   | 'SERVER_ERROR';
 
 export class ApiError extends Error {
@@ -181,11 +183,39 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       });
     }
 
+    if (response.status === 409) {
+      throw new ApiError({
+        code: 'CONFLICT',
+        status: 409,
+        endpoint: path,
+        method,
+        message: serverMessage || 'An account with this email already exists.',
+      });
+    }
+
+    if (response.status === 405) {
+      throw new ApiError({
+        code: 'METHOD_NOT_ALLOWED',
+        status: 405,
+        endpoint: path,
+        method,
+        message:
+          serverMessage ||
+          `HTTP method ${method} is not allowed on ${path}. Verify API routing and backend controller method mappings.`,
+      });
+    }
+
     if (response.status === 400 || response.status === 422) {
       const fieldErrors =
-        bodyObj.errors && typeof bodyObj.errors === 'object'
+        (bodyObj.validationErrors && typeof bodyObj.validationErrors === 'object'
+          ? (bodyObj.validationErrors as Record<string, string>)
+          : undefined) ||
+        (bodyObj.errors && typeof bodyObj.errors === 'object'
           ? (bodyObj.errors as Record<string, string>)
-          : undefined;
+          : undefined) ||
+        (bodyObj.fieldErrors && typeof bodyObj.fieldErrors === 'object'
+          ? (bodyObj.fieldErrors as Record<string, string>)
+          : undefined);
       throw new ApiError({
         code: 'VALIDATION_ERROR',
         status: response.status,
