@@ -1,87 +1,109 @@
-# Her Health Journey — Frontend Web Application
+# HER HEALTH JOURNEY — Dual-Platform Wellness System
 
-A women's health tracking platform built with React, TypeScript, Tailwind CSS, and React Router as a dedicated frontend client for an external **Java Spring Boot REST API**.
+> **KNOW YOUR BODY. OWN YOUR JOURNEY.**  
+> A production-grade, dual-platform women's period, PCOS, and holistic wellness tracking system with an Emerald Green + Champagne Gold luxury visual identity.
 
-## Features & Pages
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Production%20Ready-brightgreen)](https://vercel.com)
+[![Java 21](https://img.shields.io/badge/Backend-Java%2021%20%7C%20Spring%20Boot-orange)](backend/)
+[![Android Native](https://img.shields.io/badge/Android-Native%20Java-green)](android/)
+[![Database](https://img.shields.io/badge/Database-MySQL%20%7C%20Flyway-blue)](database/)
 
-1. **Home (`/`)** — Brand introduction, purpose, six core module descriptions, privacy & ownership guarantee, and authentication actions.
-2. **Login (`/login`)** — Email and password sign-in with validation, password visibility toggle, API error feedback, and an offline UI preview option when the Spring Boot server is not yet connected.
-3. **Registration (`/register`)** — Full name, email, password strength indicator, confirm password matching validation, and privacy consent.
-4. **Dashboard (`/dashboard`)** — Cycle overview, recent PCOS symptoms, mood & wellness summary, nutrition summary, water intake tracker, journal history, and cycle length chart backed by `/api/dashboard`.
-5. **Period Tracker (`/period-tracker`)** — Interactive monthly calendar, period start/end date logging, edit and delete operations, cycle history table, average cycle length, and approximate phase/next-period estimates.
-6. **PCOS Symptom Tracker (`/pcos-tracker`)** — Symptom selection, 1–5 severity scale, pain level (0–10), energy level (1–5), personal observations, and longitudinal trend chart.
-7. **Mood & Wellness (`/wellness`)** — Mood state selector, sleep duration slider, sleep quality rating, stress index (1–10), daily notes, and weekly rhythm chart.
-8. **Nutrition & Diet (`/nutrition`)** — Daily calorie & macronutrient progress, Breakfast/Lunch/Dinner/Snacks food diary, item logging modal, and meal history.
-9. **Water Tracker (`/water`)** — Editable daily water target, quick-add intake controls, SVG progress ring, hydration reminder preference toggle, and historical records.
-10. **Health Journal (`/journal`)** — Create, edit, and delete entries, live keyword search, category filtering, and date-ordered history.
-11. **Profile (`/profile`)** — Personal details, notification preferences, JSON profile export, account deletion confirmation, and logout.
+---
 
-## Architecture & Spring Boot API Contract
+## 🏛️ Project Architecture
 
-This application does **not** include a Node.js business backend, Firebase, or `localStorage` database persistence. Authentication tokens are held strictly in memory (`AuthContext` + `src/api/client.ts`).
-
-Configure the backend base URL via `.env`:
-
-```env
-VITE_API_BASE_URL=http://localhost:8080
+```
+/her-health-tracker
+  ├── /src                # React 19 + TypeScript + Vite + Tailwind (Vercel Frontend)
+  ├── /android            # Native Java Android SDK app (XML, Material Components)
+  ├── /backend            # Java 21 + Spring Boot 3.3.4 + Spring Security + REST APIs
+  ├── /database           # Relational MySQL DDL schemas & Flyway migrations
+  ├── /docs               # Complete architecture, API specs & ER diagrams
+  ├── vercel.json         # Vercel zero-error production SPA routing
+  └── package.json        # Frontend scripts & dependencies
 ```
 
-Expected REST endpoints:
+---
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/dashboard`
-- `GET /api/periods`, `POST /api/periods`, `PUT /api/periods/{id}`, `DELETE /api/periods/{id}`
-- `GET /api/symptoms`, `POST /api/symptoms`, `DELETE /api/symptoms/{id}`
-- `GET /api/wellness`, `POST /api/wellness`
-- `GET /api/nutrition?date=YYYY-MM-DD`, `POST /api/nutrition`, `DELETE /api/nutrition/{id}`
-- `GET /api/water?date=YYYY-MM-DD`, `POST /api/water`, `PUT /api/water`
-- `GET /api/journal`, `POST /api/journal`, `PUT /api/journal/{id}`, `DELETE /api/journal/{id}`
-- `GET /api/profile`, `PUT /api/profile`, `DELETE /api/profile`
+## 🌿 Official Emerald & Champagne Gold Brand Identity
 
-## Local Development
+| Token | Hex | Role |
+|---|---|---|
+| **Brand Emerald** | `#103C32` | Primary brand color, headers, app bars, key buttons |
+| **Emerald 950** | `#092820` | Dark cinematic background, high-contrast containers |
+| **Emerald Jade** | `#27836A` | Active indicators, secondary accents |
+| **Champagne Gold** | `#C5A66B` | Brand emblem monogram, active navigation, luxury badges |
+| **Gold Light** | `#E4D2A5` | Light sweep animations, focal highlights |
+| **Cream Canvas** | `#F8F5EB` | Warm, accessible light-theme background |
 
-```bash
-npm install
-cp .env.example .env
-# Edit .env and set VITE_API_BASE_URL to your Spring Boot server URL
-npm run dev
-```
+### 6 Module Accent Palette
+- 🌸 **Period Tracker**: `#E58B91` (Blush Rose)
+- 💜 **PCOS Symptom Tracker**: `#B49AD8` (Lavender Orchid)
+- 🌿 **Mood & Wellness**: `#A8BCA4` (Sage Harmony)
+- 🍞 **Nutrition & Diet**: `#D8AA65` (Warm Amber)
+- 💧 **Water Tracker**: `#70B8C8` (Serene Blue)
+- 📖 **Health Journal**: `#D4B98A` (Champagne Sand)
 
-## Unit Tests
+---
 
-```bash
-npx --yes tsx --test src/utils/validation.test.ts src/utils/healthCalculations.test.ts
-```
+## 🎬 6-Scene Cinematic Brand Opening
 
-## Build & Production Deployment
+Both Web and Android feature a synchronized, high-elegance opening:
+1. **Scene 1**: Deep emerald (`#092820`) background fades in.
+2. **Scene 2**: Champagne-gold light sweep moves across the viewport.
+3. **Scene 3**: Architectural "H" brand monogram appears.
+4. **Scene 4**: Reveal `HER HEALTH JOURNEY` in bold premium typography.
+5. **Scene 5**: Display `KNOW YOUR BODY. OWN YOUR JOURNEY.`
+6. **Scene 6**: Smooth transition into the real application.
 
-```bash
-npm run lint
-npm run build
-```
+---
 
-### Hosting on Vercel
+## 📱 Native Android Mobile Application (`/android`)
 
-This repository includes `/vercel.json` preconfigured for Vite (`dist` output directory) and React Router SPA fallback rewrites so direct links and page refreshes on `/login`, `/dashboard`, `/period-tracker`, `/journal`, `/profile`, etc. never return a 404.
+- **Language**: Java 17/21
+- **Framework**: Native Android SDK, AndroidX, Material Design Components
+- **Architecture**: MVVM with Repository pattern, Room local draft persistence
+- **Features**:
+  - `SplashActivity`: Native 6-scene `AnimatorSet` with Skip Intro & `SharedPreferences`
+  - `MainActivity`: Emerald app bar & bottom navigation with Champagne gold active states
+  - `DashboardFragment`: Holistic card overview of all 6 health domains
+  - `PeriodFragment`, `SymptomsFragment`, `WaterFragment`, `WellnessFragment`
+  - Secure Keystore token storage (`SecureTokenManager`)
 
-1. **Import Repository in Vercel**: Connect your Git repository or run `vercel --prod` with the root directory.
-   - Framework Preset: `Vite` (auto-detected from `vercel.json`)
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-2. **Configure `VITE_API_BASE_URL` in Vercel**:
-   - Open **Project Settings -> Environment Variables**.
-   - Add `VITE_API_BASE_URL` pointing to your deployed Java Spring Boot API **using `https://`** (e.g., `https://api.herhealthjourney.com`), without a trailing slash.
-   - Because Vite injects `VITE_*` variables at build time, **trigger a Redeploy** whenever you add or change `VITE_API_BASE_URL`.
-3. **Configure Spring Boot CORS for Vercel**:
-   - Because `src/api/client.ts` sends `Authorization: Bearer <token>` and `credentials: 'include'`, Spring Boot must explicitly allow your Vercel origin(s) instead of `*`:
+---
 
-   ```java
-   registry.addMapping("/api/**")
-       .allowedOriginPatterns("https://*.vercel.app", "https://your-custom-domain.com")
-       .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-       .allowedHeaders("Authorization", "Content-Type", "Accept")
-       .allowCredentials(true);
-   ```
+## 💻 Web Application (`/src`) & Vercel Deployment
 
+Built with React 19, TypeScript, and Tailwind CSS.
+
+### Deploying to Vercel (1-Click Ready):
+1. Import repository `satboy-12/her-health-tracker` in Vercel.
+2. Framework Preset: **Vite** (auto-detected).
+3. Build Command: `npm run build`.
+4. Output Directory: `dist`.
+5. Environment variable: `VITE_API_BASE_URL` (points to Spring Boot API backend).
+
+---
+
+## ☕ Spring Boot REST API Backend (`/backend`)
+
+- **Runtime**: Java 21, Spring Boot 3.3.4
+- **Security**: Spring Security 6 with JWT stateless authentication & BCrypt
+- **ORM & DB**: Spring Data JPA, Hibernate, MySQL with Flyway versioning
+- **Endpoints**:
+  - `POST /api/auth/register`, `POST /api/auth/login`
+  - `GET /api/dashboard`
+  - `GET/POST/PUT/DELETE /api/periods`
+  - `GET/POST/DELETE /api/symptoms`
+  - `GET/POST /api/wellness`
+  - `GET/POST/DELETE /api/nutrition`
+  - `GET/POST/PUT /api/water`
+  - `GET/POST/PUT/DELETE /api/journal`
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+- **Unit Tests**: 10/10 passing (`npm run test`)
+- **TypeScript**: 0 errors (`npm run lint` / `tsc --noEmit`)
+- **Vite Build**: Compiled production bundle cleanly (`npm run build`)

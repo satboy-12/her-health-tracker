@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+
+    <!-- Medallion Background -->
+    <path
+        android:fillColor="#103C32"
+        android:pathData="M16,4 L56,4 A12,12 0 0,1 68,16 L68,56 A12,12 0 0,1 56,68 L16,68 A12,12 0 0,1 4,56 L4,16 A12,12 0 0,1 16,4 Z" />
+
+    <!-- Gold Accent Ring -->
+    <path
+        android:strokeColor="#C5A66B"
+        android:strokeWidth="1.5"
+        android:strokeAlpha="0.75"
+        android:fillColor="#00000000"
+        android:pathData="M36,8 A28,28 0 1,1 35.9,8" />
+
+    <!-- Architectural Monogram H -->
+    <!-- Left Pillar -->
+    <path
+        android:strokeColor="#E4D2A5"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M23,20 L23,52" />
+
+    <!-- Right Pillar -->
+    <path
+        android:strokeColor="#E4D2A5"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M49,20 L49,52" />
+
+    <!-- Botanical Wave Crossbar -->
+    <path
+        android:strokeColor="#C5A66B"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M23,36.5 C28,33 44,40 49,36.5" />
+
+    <!-- Center Gold Focal Dot -->
+    <path
+        android:fillColor="#E4D2A5"
+        android:pathData="M36,33.5 A3,3 0 1,1 35.9,33.5" />
+</vector>

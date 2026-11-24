@@ -5,3 +5,23 @@ dist
 .env.local
 .playwright-cli
 *.log
+
+# Java & Backend
+target/
+*.class
+*.jar
+*.war
+data/
+backend/data/
+backend/target/
+
+# Android & Gradle
+.gradle/
+build/
+app/build/
+android/.gradle/
+android/app/build/
+android/build/
+local.properties
+.idea/
+*.iml
