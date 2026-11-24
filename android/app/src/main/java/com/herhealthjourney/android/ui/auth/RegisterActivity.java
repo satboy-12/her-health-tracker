@@ -5,12 +5,14 @@ import android.widget.Button;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.gson.JsonObject;
 import com.herhealthjourney.android.R;
-import com.herhealthjourney.android.api.ApiClient;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import com.herhealthjourney.android.firebase.FirebaseHelper;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -33,43 +35,48 @@ public class RegisterActivity extends AppCompatActivity {
             String lastName = etLastName.getText() != null ? etLastName.getText().toString().trim() : "";
             String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
 
-            if (username.isEmpty() || email.isEmpty() || firstName.isEmpty() || lastName.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            if (email.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            JsonObject payload = new JsonObject();
-            payload.addProperty("username", username);
-            payload.addProperty("email", email);
-            payload.addProperty("firstName", firstName);
-            payload.addProperty("lastName", lastName);
-            payload.addProperty("password", password);
+            String fullName = (firstName + " " + lastName).trim();
+            if (fullName.isEmpty()) {
+                fullName = username.isEmpty() ? email.split("@")[0] : username;
+            }
 
             btnRegister.setEnabled(false);
             btnRegister.setText("Creating account...");
 
-            ApiClient.getService(this).register(payload).enqueue(new Callback<JsonObject>() {
-                @Override
-                public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+            final String finalFullName = fullName;
+            FirebaseHelper.getAuth().createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
                     btnRegister.setEnabled(true);
                     btnRegister.setText("Register");
 
-                    if (response.isSuccessful()) {
-                        Toast.makeText(RegisterActivity.this, "Account created! Please log in.", Toast.LENGTH_LONG).show();
-                        finish();
+                    if (task.isSuccessful() && FirebaseHelper.getCurrentUser() != null) {
+                        String uid = FirebaseHelper.getCurrentUser().getUid();
+                        String nowIso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date());
+
+                        Map<String, Object> profileData = new HashMap<>();
+                        profileData.put("fullName", finalFullName);
+                        profileData.put("email", email);
+                        profileData.put("createdAt", nowIso);
+                        profileData.put("updatedAt", nowIso);
+                        profileData.put("profileImage", null);
+                        profileData.put("accountTier", "Firebase Cloud");
+                        profileData.put("memberSince", nowIso.substring(0, 10));
+
+                        FirebaseHelper.getProfileRef(uid).setValue(profileData)
+                            .addOnCompleteListener(profileTask -> {
+                                Toast.makeText(RegisterActivity.this, "Account created! Please sign in.", Toast.LENGTH_LONG).show();
+                                finish();
+                            });
                     } else {
-                        Toast.makeText(RegisterActivity.this, "Registration failed. Username or email may exist.", Toast.LENGTH_LONG).show();
+                        String errorMsg = task.getException() != null ? task.getException().getMessage() : "Registration failed.";
+                        Toast.makeText(RegisterActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                     }
-                }
-
-                @Override
-                public void onFailure(Call<JsonObject> call, Throwable t) {
-                    btnRegister.setEnabled(true);
-                    btnRegister.setText("Register");
-                    Toast.makeText(RegisterActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            });
+                });
         });
     }
 }
-

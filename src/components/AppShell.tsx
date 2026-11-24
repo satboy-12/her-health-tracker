@@ -117,8 +117,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Lock className="w-4 h-4 shrink-0 mt-0.5 text-[#C5A66B]" aria-hidden="true" />
                 <span>
                   {user
-                    ? `Signed in (${user.fullName}). Spring Boot API synced.`
-                    : 'Spring Boot API synced.'}
+                    ? `Signed in (${user.fullName}). Firebase RTDB synced.`
+                    : 'Firebase Realtime Sync active.'}
                 </span>
               </p>
 
@@ -188,13 +188,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <div className="text-xs text-[var(--muted)] space-y-2">
                       <p>
                         <span className="font-semibold text-[var(--ink)]">Session:</span>{' '}
-                        {user ? `Spring Boot (${user.email})` : 'Active'}
+                        {user ? `Firebase Auth (${user.email})` : 'Active'}
                       </p>
                       <p className="break-all">
-                        <span className="font-semibold text-[var(--ink)]">Spring Boot Base URL:</span>{' '}
+                        <span className="font-semibold text-[var(--ink)]">Firebase Project:</span>{' '}
                         <code className="font-mono text-[var(--plum)]">
-                          {baseUrl || 'Not configured (VITE_API_BASE_URL empty)'}
+                          gen-lang-client-0665837098
                         </code>
+                      </p>
+                      <p className="break-all">
+                        <span className="font-semibold text-[var(--ink)]">Realtime DB:</span>{' '}
+                        <span className="text-[var(--brand-jade)] font-medium">Connected</span>
                       </p>
                       <div className="pt-2 border-t border-[var(--line)] flex justify-between items-center">
                         <Link

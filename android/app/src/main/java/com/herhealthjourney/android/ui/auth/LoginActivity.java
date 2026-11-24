@@ -7,14 +7,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.gson.JsonObject;
 import com.herhealthjourney.android.R;
-import com.herhealthjourney.android.api.ApiClient;
+import com.herhealthjourney.android.firebase.FirebaseHelper;
 import com.herhealthjourney.android.ui.MainActivity;
 import com.herhealthjourney.android.util.SecureTokenManager;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -35,51 +31,35 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         btnLogin.setOnClickListener(v -> {
-            String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
+            String email = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
             String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
 
-            if (username.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Please enter your username and password", Toast.LENGTH_SHORT).show();
+            if (email.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Please enter your email and password", Toast.LENGTH_SHORT).show();
                 return;
             }
-
-            JsonObject payload = new JsonObject();
-            payload.addProperty("usernameOrEmail", username);
-            payload.addProperty("password", password);
 
             btnLogin.setEnabled(false);
             btnLogin.setText("Signing in...");
 
-            ApiClient.getService(this).login(payload).enqueue(new Callback<JsonObject>() {
-                @Override
-                public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+            FirebaseHelper.getAuth().signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
                     btnLogin.setEnabled(true);
                     btnLogin.setText("Sign In");
 
-                    if (response.isSuccessful() && response.body() != null) {
-                        JsonObject data = response.body();
-                        String token = data.get("token").getAsString();
-                        String user = data.has("username") ? data.get("username").getAsString() : username;
-
+                    if (task.isSuccessful() && FirebaseHelper.getCurrentUser() != null) {
+                        String uid = FirebaseHelper.getCurrentUser().getUid();
                         SecureTokenManager tokenManager = new SecureTokenManager(LoginActivity.this);
-                        tokenManager.saveAuth(token, user);
+                        tokenManager.saveAuth(uid, email);
 
-                        Toast.makeText(LoginActivity.this, "Welcome, " + user, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(LoginActivity.this, "Welcome, " + email, Toast.LENGTH_SHORT).show();
                         startActivity(new Intent(LoginActivity.this, MainActivity.class));
                         finish();
                     } else {
-                        Toast.makeText(LoginActivity.this, "Authentication failed. Check credentials.", Toast.LENGTH_LONG).show();
+                        String errorMsg = task.getException() != null ? task.getException().getMessage() : "Authentication failed.";
+                        Toast.makeText(LoginActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                     }
-                }
-
-                @Override
-                public void onFailure(Call<JsonObject> call, Throwable t) {
-                    btnLogin.setEnabled(true);
-                    btnLogin.setText("Sign In");
-                    Toast.makeText(LoginActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            });
+                });
         });
     }
 }
-

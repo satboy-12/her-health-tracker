@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { BrandLogo } from '../components/BrandLogo';
 import { ErrorState } from '../components/ErrorState';
 import { FormInput } from '../components/FormInput';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getFirebaseErrorMessage } from '../services/authService';
 import { validateEmail, validatePassword } from '../utils/validation';
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, sendPasswordReset } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo =
@@ -21,16 +21,18 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<ApiError | string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextEmailErr = validateEmail(email);
-    const nextPassErr = validatePassword(password, 8);
+    const nextPassErr = validatePassword(password, 6);
     setEmailError(nextEmailErr);
     setPasswordError(nextPassErr);
     setApiError(null);
@@ -43,14 +45,30 @@ export function LoginPage() {
     try {
       await login({ email: email.trim(), password, rememberMe });
       navigate(redirectTo, { replace: true });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setApiError(err);
-      } else {
-        setApiError('Unable to complete sign in. Please verify your credentials and connection.');
-      }
+    } catch (err: any) {
+      const msg = getFirebaseErrorMessage(err?.code || err?.message || String(err));
+      setApiError(msg);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    const err = validateEmail(email);
+    if (err) {
+      setEmailError('Enter your valid email above to receive a password reset link.');
+      return;
+    }
+    setResetSubmitting(true);
+    setApiError(null);
+    try {
+      await sendPasswordReset(email.trim());
+      setResetEmailSent(true);
+    } catch (err: any) {
+      const msg = getFirebaseErrorMessage(err?.code || err?.message || String(err));
+      setApiError(msg);
+    } finally {
+      setResetSubmitting(false);
     }
   };
 
@@ -92,7 +110,7 @@ export function LoginPage() {
             </div>
 
             {apiError && (
-              <ErrorState error={apiError} expectedEndpoint="POST /api/auth/login" />
+              <ErrorState error={apiError} expectedEndpoint="Firebase Auth" />
             )}
 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
@@ -154,7 +172,10 @@ export function LoginPage() {
 
                   <button
                     type="button"
-                    onClick={() => setForgotPasswordOpen(true)}
+                    onClick={() => {
+                      setForgotPasswordOpen(true);
+                      setResetEmailSent(false);
+                    }}
                     className="font-semibold text-[var(--brand-emerald)] hover:underline cursor-pointer"
                   >
                     Forgot password?
@@ -163,11 +184,28 @@ export function LoginPage() {
               </div>
 
               {forgotPasswordOpen && (
-                <div className="p-3.5 rounded-[12px] bg-[var(--surface-secondary)] border border-[var(--border-strong)] text-xs text-[var(--text-secondary)] flex flex-col gap-1.5">
+                <div className="p-3.5 rounded-[12px] bg-[var(--surface-secondary)] border border-[var(--border-strong)] text-xs text-[var(--text-secondary)] flex flex-col gap-2">
                   <strong className="text-[var(--text-primary)]">Password Reset Assistance</strong>
-                  <p>
-                    For your privacy, account access resets require email verification through your backend administrator or clinical portal. Please contact <span className="font-semibold text-[var(--brand-emerald)]">support@herhealthjourney.com</span>.
-                  </p>
+                  {resetEmailSent ? (
+                    <div className="flex items-center gap-2 text-[var(--brand-emerald)] font-semibold">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Password reset email dispatched to {email}. Check your inbox!</span>
+                    </div>
+                  ) : (
+                    <>
+                      <p>
+                        We will send a secure password reset link to your registered email address.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handlePasswordReset}
+                        disabled={resetSubmitting}
+                        className="self-start px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-emerald)] text-white hover:opacity-90 cursor-pointer disabled:opacity-50"
+                      >
+                        {resetSubmitting ? 'Sending...' : 'Send Password Reset Email'}
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => setForgotPasswordOpen(false)}

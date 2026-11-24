@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.herhealthjourney.android.R;
+import com.herhealthjourney.android.firebase.FirebaseHelper;
 import com.herhealthjourney.android.ui.auth.LoginActivity;
 import com.herhealthjourney.android.ui.dashboard.DashboardFragment;
 import com.herhealthjourney.android.ui.period.PeriodFragment;
@@ -27,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         tokenManager = new SecureTokenManager(this);
 
-        if (!tokenManager.hasToken()) {
+        if (FirebaseHelper.getCurrentUser() == null && !tokenManager.hasToken()) {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
@@ -39,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
         toolbar.inflateMenu(R.menu.top_menu);
         toolbar.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.action_logout) {
+                FirebaseHelper.getAuth().signOut();
                 tokenManager.clear();
                 Toast.makeText(this, "Signed out", Toast.LENGTH_SHORT).show();
                 Intent logoutIntent = new Intent(this, LoginActivity.class);
@@ -89,4 +91,3 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 }
-

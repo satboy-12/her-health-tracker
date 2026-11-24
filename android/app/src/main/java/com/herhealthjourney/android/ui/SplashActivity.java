@@ -138,7 +138,7 @@ public class SplashActivity extends AppCompatActivity {
         // Scene 6: Transition smoothly into the real application
         SecureTokenManager tokenManager = new SecureTokenManager(this);
         Intent intent;
-        if (tokenManager.hasToken()) {
+        if (com.herhealthjourney.android.firebase.FirebaseHelper.getCurrentUser() != null || tokenManager.hasToken()) {
             intent = new Intent(this, MainActivity.class);
         } else {
             intent = new Intent(this, LoginActivity.class);

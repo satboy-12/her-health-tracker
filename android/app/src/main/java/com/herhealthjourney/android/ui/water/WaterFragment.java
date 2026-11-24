@@ -11,12 +11,17 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import com.google.gson.JsonObject;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.ValueEventListener;
 import com.herhealthjourney.android.R;
-import com.herhealthjourney.android.api.ApiClient;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import com.herhealthjourney.android.firebase.FirebaseHelper;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 public class WaterFragment extends Fragment {
 
@@ -37,47 +42,69 @@ public class WaterFragment extends Fragment {
         btn250.setOnClickListener(v -> addIntake(250));
         btn500.setOnClickListener(v -> addIntake(500));
 
-        loadWater();
+        listenToWater();
         return view;
     }
 
-    private void loadWater() {
-        if (getContext() == null) return;
-        ApiClient.getService(getContext()).getTodayWater().enqueue(new Callback<JsonObject>() {
-            @Override
-            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    JsonObject data = response.body();
-                    int current = data.get("currentAmountMl").getAsInt();
-                    int goal = data.get("dailyGoalMl").getAsInt();
-                    int pct = data.get("percentageCompleted").getAsInt();
+    private void listenToWater() {
+        String uid = FirebaseHelper.getCurrentUid();
+        if (uid == null) {
+            if (tvWaterDetail != null) tvWaterDetail.setText("0 / 2500 ml");
+            return;
+        }
 
-                    tvWaterDetail.setText(current + " / " + goal + " ml");
-                    pbWaterPage.setProgress(pct);
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+
+        FirebaseHelper.getWaterRef(uid).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (tvWaterDetail == null || pbWaterPage == null) return;
+                long totalMl = 0;
+                long goalMl = 2500;
+
+                if (snapshot.exists()) {
+                    for (DataSnapshot child : snapshot.getChildren()) {
+                        String date = child.child("date").getValue(String.class);
+                        if (today.equals(date)) {
+                            Long amt = child.child("amountMl").getValue(Long.class);
+                            if (amt != null) totalMl += amt;
+                            Long g = child.child("goalMl").getValue(Long.class);
+                            if (g != null && g > 0) goalMl = g;
+                        }
+                    }
                 }
+
+                int pct = (int) Math.min(100, Math.round((totalMl * 100.0) / goalMl));
+                tvWaterDetail.setText(totalMl + " / " + goalMl + " ml (" + pct + "%)");
+                pbWaterPage.setProgress(pct);
             }
 
             @Override
-            public void onFailure(Call<JsonObject> call, Throwable t) {
-                tvWaterDetail.setText("Offline Mode");
-            }
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
     private void addIntake(int ml) {
-        if (getContext() == null) return;
-        ApiClient.getService(getContext()).addWater(ml).enqueue(new Callback<JsonObject>() {
-            @Override
-            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
-                Toast.makeText(getContext(), "+" + ml + " ml logged!", Toast.LENGTH_SHORT).show();
-                loadWater();
-            }
+        String uid = FirebaseHelper.getCurrentUid();
+        if (uid == null) {
+            Toast.makeText(getContext(), "Please sign in to log water", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-            @Override
-            public void onFailure(Call<JsonObject> call, Throwable t) {
-                Toast.makeText(getContext(), "Logged locally (Offline)", Toast.LENGTH_SHORT).show();
-            }
-        });
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+        String nowIso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("date", today);
+        payload.put("amountMl", ml);
+        payload.put("goalMl", 2500);
+        payload.put("updatedAt", nowIso);
+
+        FirebaseHelper.getWaterRef(uid).push().setValue(payload)
+            .addOnCompleteListener(task -> {
+                if (task.isSuccessful() && getContext() != null) {
+                    Toast.makeText(getContext(), "+" + ml + " ml logged to Firebase!", Toast.LENGTH_SHORT).show();
+                }
+            });
     }
 }
-
