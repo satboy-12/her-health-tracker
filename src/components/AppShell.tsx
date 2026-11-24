@@ -45,7 +45,7 @@ const MOBILE_SHEET_ITEMS = NAV_ITEMS.filter(
 );
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, authProvider, isPreviewMode, logout, exitPreviewMode } = useAuth();
+  const { user, authProvider, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
@@ -53,11 +53,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     setMoreSheetOpen(false);
-    if (isPreviewMode && !user) {
-      exitPreviewMode();
-      navigate('/login');
-      return;
-    }
     await logout();
     navigate('/login');
   };
@@ -122,10 +117,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Lock className="w-4 h-4 shrink-0 mt-0.5 text-[#C5A66B]" aria-hidden="true" />
                 <span>
                   {user
-                    ? authProvider === 'firebase'
-                      ? `Signed in (${user.fullName}). Cloud Firestore active.`
-                      : `Signed in (${user.fullName}). Spring Boot API synced.`
-                    : 'Connect Firebase (Google) or Spring Boot API.'}
+                    ? `Signed in (${user.fullName}). Spring Boot API synced.`
+                    : 'Spring Boot API synced.'}
                 </span>
               </p>
 
@@ -135,7 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-[12px] text-[0.9rem] font-semibold text-white/85 hover:bg-[#174F40] hover:text-[#E4D2A5] transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
-                <span>{isPreviewMode && !user ? 'Exit Preview' : 'Sign Out'}</span>
+                <span>Sign Out</span>
               </button>
             </div>
           </aside>
@@ -152,15 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <span>Her Health Journey</span>
               </Link>
 
-              {isPreviewMode && !user ? (
-                <span className="hidden lg:inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-                  <span>UI Preview Mode</span>
-                  <span aria-hidden="true">·</span>
-                  <span>Spring Boot API Disconnected</span>
-                </span>
-              ) : (
-                <span className="hidden lg:block" />
-              )}
+              <span className="hidden lg:block" />
 
               <div className="flex items-center gap-2 ml-auto relative">
                 <button
@@ -203,20 +188,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <div className="text-xs text-[var(--muted)] space-y-2">
                       <p>
                         <span className="font-semibold text-[var(--ink)]">Session:</span>{' '}
-                        {user
-                          ? authProvider === 'firebase'
-                            ? `Firebase Google (${user.email})`
-                            : `Spring Boot (${user.email})`
-                          : 'Offline UI Preview'}
+                        {user ? `Spring Boot (${user.email})` : 'Active'}
                       </p>
                       <p className="break-all">
-                        <span className="font-semibold text-[var(--ink)]">
-                          {authProvider === 'firebase' ? 'Database:' : 'Spring Boot Base URL:'}
-                        </span>{' '}
+                        <span className="font-semibold text-[var(--ink)]">Spring Boot Base URL:</span>{' '}
                         <code className="font-mono text-[var(--plum)]">
-                          {authProvider === 'firebase'
-                            ? 'Cloud Firestore (Connected)'
-                            : baseUrl || 'Not configured (VITE_API_BASE_URL empty)'}
+                          {baseUrl || 'Not configured (VITE_API_BASE_URL empty)'}
                         </code>
                       </p>
                       <div className="pt-2 border-t border-[var(--line)] flex justify-between items-center">
@@ -297,7 +274,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] font-semibold text-[var(--muted)] hover:bg-[var(--surface2)] hover:text-[var(--ink)] cursor-pointer text-left"
               >
                 <LogOut className="w-5 h-5 shrink-0" aria-hidden="true" />
-                <span>{isPreviewMode && !user ? 'Exit Preview' : 'Sign Out'}</span>
+                <span>Sign Out</span>
               </button>
             </nav>
           </div>

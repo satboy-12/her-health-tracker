@@ -21,11 +21,6 @@ import { NavigationBar } from '../components/NavigationBar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { SecondaryButton } from '../components/SecondaryButton';
 import { useAuth } from '../context/AuthContext';
-import {
-  clearIntroCompleted,
-  markIntroCompleted,
-  shouldShowCinematicIntro,
-} from '../utils/introStorage';
 
 const TRACKERS = [
   {
@@ -91,7 +86,7 @@ const TRACKERS = [
 ];
 
 export function HomePage() {
-  const { isAuthenticated, enterPreviewMode } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
@@ -101,25 +96,27 @@ export function HomePage() {
     return params.get('autostart') === '1';
   }, [location.search]);
 
+  // The website must display its cinematic opening EVERY TIME a visitor opens or reloads
+  // No sessionStorage, localStorage, cookies or first-visit flags suppressing it
   const [showIntro, setShowIntro] = useState<boolean>(() => {
-    if (autostartBypass || typeof window === 'undefined') return false;
-    return shouldShowCinematicIntro({ storage: window.sessionStorage });
+    if (autostartBypass) return false;
+    return true;
   });
 
   const [heroImageFailed, setHeroImageFailed] = useState(false);
 
   const handleIntroComplete = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      markIntroCompleted(window.sessionStorage);
-    }
     setShowIntro(false);
-  }, []);
+    // After cinematic opening:
+    // - Logged-in users proceed to their authenticated dashboard
+    // - Logged-out users remain on public landing page
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleReplayIntro = () => {
-    if (typeof window !== 'undefined') {
-      clearIntroCompleted(window.sessionStorage);
-      window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
     setShowIntro(true);
   };
 

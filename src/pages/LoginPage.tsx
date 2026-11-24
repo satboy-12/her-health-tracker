@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { validateEmail, validatePassword } from '../utils/validation';
 
 export function LoginPage() {
-  const { login, loginWithGoogle, enterPreviewMode } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo =
@@ -20,26 +20,12 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<ApiError | string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [googleBusy, setGoogleBusy] = useState(false);
-
-  const handleGoogleSignIn = async () => {
-    setApiError(null);
-    setGoogleBusy(true);
-    try {
-      await loginWithGoogle();
-      navigate(redirectTo, { replace: true });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unable to sign in with Google.';
-      setApiError(msg);
-    } finally {
-      setGoogleBusy(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,21 +47,25 @@ export function LoginPage() {
       if (err instanceof ApiError) {
         setApiError(err);
       } else {
-        setApiError('Unable to complete sign in. Please check your connection.');
+        setApiError('Unable to complete sign in. Please verify your credentials and connection.');
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleOpenPreview = () => {
-    enterPreviewMode();
-    navigate(redirectTo, { replace: true });
-  };
-
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center py-8 sm:py-12">
-      <div className="page-container flex flex-col items-center">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center py-8 sm:py-12 relative overflow-hidden">
+      {/* Subtle emerald silk ambient background */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-15"
+        style={{
+          backgroundImage: 'radial-gradient(ellipse at 50% 15%, rgba(39, 131, 106, 0.4) 0%, transparent 65%)',
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="page-container flex flex-col items-center relative z-10">
         <div className="w-full max-w-[460px] flex flex-col gap-5">
           <Link
             to="/"
@@ -84,72 +74,26 @@ export function LoginPage() {
             <BrandLogo className="w-11 h-11" />
             <div className="flex flex-col">
               <span className="leading-tight">Her Health Journey</span>
-              <span className="text-[0.65rem] tracking-wider font-semibold text-[var(--brand-jade)] uppercase">Know Your Body. Own Your Journey.</span>
+              <span className="text-[0.65rem] tracking-wider font-semibold text-[var(--brand-jade)] uppercase">
+                Know Your Body. Own Your Journey.
+              </span>
             </div>
           </Link>
 
-          <div className="hhj-card p-5 sm:p-8 flex flex-col gap-5">
+          <div className="hhj-card p-6 sm:p-8 flex flex-col gap-5 border border-[var(--border-primary)] shadow-[var(--shadow-card)]">
             <div>
-              <p className="hhj-eyebrow">Welcome back</p>
+              <p className="hhj-eyebrow">Welcome Back</p>
               <h1 className="font-display font-bold text-2xl sm:text-[1.75rem] text-[var(--ink)] mt-1">
-                Sign in to your journal
+                Sign In to Your Journal
               </h1>
               <p className="text-sm text-[var(--muted)] mt-1">
-                Sign in with Google to sync with Cloud Firestore, or use your Spring Boot account credentials.
+                Enter your registered email and password to access your private wellness data.
               </p>
             </div>
 
             {apiError && (
-              <ErrorState error={apiError} expectedEndpoint="Firebase Auth / POST /api/auth/login" />
+              <ErrorState error={apiError} expectedEndpoint="POST /api/auth/login" />
             )}
-
-            <button
-              type="button"
-              onClick={() => void handleGoogleSignIn()}
-              disabled={googleBusy || submitting}
-              className="gsi-material-button"
-            >
-              <div className="gsi-material-button-state" />
-              <div className="gsi-material-button-content-wrapper">
-                <div className="gsi-material-button-icon">
-                  <svg
-                    version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 48 48"
-                    style={{ display: 'block' }}
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill="#EA4335"
-                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                    />
-                    <path fill="none" d="M0 0h48v48H0z" />
-                  </svg>
-                </div>
-                <span className="gsi-material-button-contents">
-                  {googleBusy ? 'Connecting to Google...' : 'Sign in with Google'}
-                </span>
-                <span style={{ display: 'none' }}>Sign in with Google</span>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-3 text-xs text-[var(--muted)]">
-              <span className="h-px flex-1 bg-[var(--line)]" />
-              <span>or Spring Boot credentials</span>
-              <span className="h-px flex-1 bg-[var(--line)]" />
-            </div>
 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
               <FormInput
@@ -167,67 +111,86 @@ export function LoginPage() {
                 error={emailError}
               />
 
-              <FormInput
-                id="login-password"
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (passwordError) setPasswordError(null);
-                }}
-                placeholder="Enter your password"
-                icon={<Lock className="w-4 h-4" aria-hidden="true" />}
-                error={passwordError}
-                trailing={
+              <div className="flex flex-col gap-1">
+                <FormInput
+                  id="login-password"
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError(null);
+                  }}
+                  placeholder="Enter your password"
+                  icon={<Lock className="w-4 h-4" aria-hidden="true" />}
+                  error={passwordError}
+                  trailing={
+                    <button
+                      type="button"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="p-1 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" aria-hidden="true" />
+                      ) : (
+                        <Eye className="w-4 h-4" aria-hidden="true" />
+                      )}
+                    </button>
+                  }
+                />
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <label className="flex items-center gap-2 text-[var(--muted)] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded accent-[var(--brand-emerald)] cursor-pointer"
+                    />
+                    <span>Remember me</span>
+                  </label>
+
                   <button
                     type="button"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="p-1 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                    onClick={() => setForgotPasswordOpen(true)}
+                    className="font-semibold text-[var(--brand-emerald)] hover:underline cursor-pointer"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" aria-hidden="true" />
-                    ) : (
-                      <Eye className="w-4 h-4" aria-hidden="true" />
-                    )}
+                    Forgot password?
                   </button>
-                }
-              />
+                </div>
+              </div>
 
-              <label className="flex items-center gap-2 text-xs text-[var(--muted)] cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded accent-[var(--plum)] cursor-pointer"
-                />
-                <span>Keep session preference for this visit</span>
-              </label>
+              {forgotPasswordOpen && (
+                <div className="p-3.5 rounded-[12px] bg-[var(--surface-secondary)] border border-[var(--border-strong)] text-xs text-[var(--text-secondary)] flex flex-col gap-1.5">
+                  <strong className="text-[var(--text-primary)]">Password Reset Assistance</strong>
+                  <p>
+                    For your privacy, account access resets require email verification through your backend administrator or clinical portal. Please contact <span className="font-semibold text-[var(--brand-emerald)]">support@herhealthjourney.com</span>.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setForgotPasswordOpen(false)}
+                    className="self-end font-semibold text-[var(--brand-jade)] hover:underline pt-1 cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
 
-              <PrimaryButton type="submit" disabled={submitting} className="w-full">
+              <PrimaryButton type="submit" disabled={submitting} className="w-full mt-2">
                 <span>{submitting ? 'Signing in...' : 'Sign In'}</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </PrimaryButton>
             </form>
 
-            <div className="pt-4 border-t border-[var(--line)] space-y-2.5 text-center">
+            <div className="pt-4 border-t border-[var(--border-primary)] text-center">
               <p className="text-xs text-[var(--muted)]">
                 Don&apos;t have an account?{' '}
-                <Link to="/register" className="text-[var(--plum)] font-bold hover:underline">
+                <Link to="/register" className="text-[var(--brand-emerald)] font-bold hover:underline">
                   Create account
                 </Link>
               </p>
-              <div>
-                <button
-                  type="button"
-                  onClick={handleOpenPreview}
-                  className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--plum)] underline cursor-pointer"
-                >
-                  Preview Protected UI Screens (Backend Disconnected)
-                </button>
-              </div>
             </div>
           </div>
         </div>

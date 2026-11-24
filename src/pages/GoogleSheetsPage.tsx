@@ -32,13 +32,23 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 export function GoogleSheetsPage() {
-  const {
-    user,
-    isPreviewMode,
-    workspaceToken,
-    authorizeGoogleWorkspace,
-    clearWorkspaceToken,
-  } = useAuth();
+  const { user } = useAuth();
+  const [workspaceToken, setWorkspaceToken] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('hhj_sheets_access_token');
+    } catch {
+      return null;
+    }
+  });
+
+  const clearWorkspaceToken = useCallback(() => {
+    try {
+      sessionStorage.removeItem('hhj_sheets_access_token');
+    } catch {
+      // Ignore storage errors
+    }
+    setWorkspaceToken(null);
+  }, []);
 
   const [spreadsheets, setSpreadsheets] = useState<DriveSpreadsheetFile[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
@@ -150,15 +160,21 @@ export function GoogleSheetsPage() {
   };
 
   const handleAuthorizeGoogle = async () => {
+    const enteredToken = window.prompt(
+      'Enter a Google OAuth Access Token with drive.file / spreadsheets scope:',
+    );
+    if (!enteredToken || !enteredToken.trim()) return;
     setAuthBusy(true);
     setErrorMsg(null);
     setStatusBanner(null);
     try {
-      await authorizeGoogleWorkspace();
+      const clean = enteredToken.trim();
+      sessionStorage.setItem('hhj_sheets_access_token', clean);
+      setWorkspaceToken(clean);
       setStatusBanner('Connected to Google Drive and Google Sheets.');
     } catch (err) {
       setErrorMsg(
-        err instanceof Error ? err.message : 'Unable to connect your Google account.',
+        err instanceof Error ? err.message : 'Unable to store Google Sheets token.',
       );
     } finally {
       setAuthBusy(false);
@@ -302,11 +318,6 @@ export function GoogleSheetsPage() {
                 Access tokens remain strictly in browser memory for your current session and are never stored in browser storage.
               </span>
             </p>
-            {isPreviewMode && !user && (
-              <p className="text-xs text-[var(--plum)] font-medium pt-1">
-                Currently in UI Preview Mode — clicking Sign in with Google below will connect your Google session cleanly.
-              </p>
-            )}
           </div>
 
           <div className="w-full max-w-[280px]">
@@ -314,42 +325,10 @@ export function GoogleSheetsPage() {
               type="button"
               onClick={() => void handleAuthorizeGoogle()}
               disabled={authBusy}
-              className="gsi-material-button"
+              className="primary-button min-h-[44px] px-6 py-2.5 flex items-center justify-center gap-2 cursor-pointer w-full text-sm"
             >
-              <div className="gsi-material-button-state" />
-              <div className="gsi-material-button-content-wrapper">
-                <div className="gsi-material-button-icon">
-                  <svg
-                    version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 48 48"
-                    style={{ display: 'block' }}
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill="#EA4335"
-                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                    />
-                    <path fill="none" d="M0 0h48v48H0z" />
-                  </svg>
-                </div>
-                <span className="gsi-material-button-contents">
-                  {authBusy ? 'Connecting...' : 'Sign in with Google'}
-                </span>
-                <span style={{ display: 'none' }}>Sign in with Google</span>
-              </div>
+              <FileSpreadsheet className="w-4 h-4 text-[#C5A66B]" />
+              <span>{authBusy ? 'Connecting...' : 'Connect Sheets Access Token'}</span>
             </button>
           </div>
         </section>

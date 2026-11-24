@@ -20,7 +20,7 @@ const THEME_OPTIONS: Array<{ value: ThemeChoice; label: string }> = [
 ];
 
 export function ProfilePage() {
-  const { user, authProvider, logout, isPreviewMode, exitPreviewMode } = useAuth();
+  const { user, authProvider, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -149,11 +149,6 @@ export function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    if (isPreviewMode && !user) {
-      exitPreviewMode();
-      navigate('/login', { replace: true });
-      return;
-    }
     await logout();
     navigate('/login', { replace: true });
   };
@@ -168,9 +163,7 @@ export function ProfilePage() {
             Profile and settings
           </h1>
           <p className="text-sm text-[var(--muted)] mt-1">
-            {authProvider === 'firebase'
-              ? 'Your preferences, appearance, and Firebase Cloud Firestore account controls.'
-              : 'Your preferences, appearance, and Spring Boot account controls.'}
+            Your preferences, appearance, and Spring Boot account controls.
           </p>
         </div>
 
@@ -228,9 +221,7 @@ export function ProfilePage() {
                   Personal details
                 </h2>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
-                  {authProvider === 'firebase'
-                    ? 'Updates sync securely with Firebase Cloud Firestore.'
-                    : 'Updates sync directly via PUT /api/profile.'}
+                  Updates sync directly via PUT /api/profile.
                 </p>
               </header>
 
@@ -377,7 +368,7 @@ export function ProfilePage() {
                     {fullName || 'Account Not Loaded'}
                   </h2>
                   <p className="text-sm text-[var(--muted)]">
-                    {email || (authProvider === 'firebase' ? 'Signed in with Firebase' : 'Connect GET /api/profile')}
+                    {email || 'Signed in via Spring Boot'}
                   </p>
                 </div>
                 <ShieldCheck className="w-6 h-6 text-[var(--good)] shrink-0" aria-hidden="true" />
@@ -393,7 +384,7 @@ export function ProfilePage() {
                 <div className="bg-[var(--surface2)] rounded-[12px] p-3">
                   <span className="text-[var(--muted)] block">Data Sync</span>
                   <b className="text-sm text-[var(--good)] mt-0.5 block">
-                    {authProvider === 'firebase' ? 'Firebase Firestore' : 'Spring Boot / In-Memory'}
+                    Spring Boot API
                   </b>
                 </div>
               </div>
@@ -436,9 +427,7 @@ export function ProfilePage() {
                   Session control
                 </h2>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
-                  {authProvider === 'firebase'
-                    ? 'Sign out of your Google Firebase session on this device.'
-                    : 'Sign out via POST /api/auth/logout and clear in-memory token.'}
+                  Sign out of your active session on this device.
                 </p>
               </div>
               <button
@@ -447,7 +436,7 @@ export function ProfilePage() {
                 className="inline-flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-[12px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] text-sm font-semibold text-[var(--ink)] cursor-pointer whitespace-nowrap"
               >
                 <LogOut className="w-4 h-4" aria-hidden="true" />
-                <span>{isPreviewMode && !user ? 'Exit Preview' : 'Sign Out'}</span>
+                <span>Sign Out</span>
               </button>
             </section>
 
@@ -464,11 +453,7 @@ export function ProfilePage() {
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Delete Account & Health Records"
-        description={
-          authProvider === 'firebase'
-            ? 'Are you sure you want to permanently delete your Firebase account and Cloud Firestore health records? This action cannot be undone.'
-            : 'Are you sure you want to permanently delete your account via DELETE /api/profile? This action cannot be undone.'
-        }
+        description="Are you sure you want to permanently delete your account and all associated health records? This action cannot be undone."
         confirmLabel="Delete Account"
         destructive
         busy={deleting}

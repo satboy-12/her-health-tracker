@@ -10,13 +10,14 @@ interface CinematicIntroProps {
 const BRAND_WORDS = ['HER', 'HEALTH', 'JOURNEY'] as const;
 
 /**
- * 6-Scene Emerald & Champagne Gold Cinematic Brand Introduction:
- * Scene 1: Deep emerald (#092820) fades in.
+ * 7-Scene Emerald & Champagne Gold Cinematic Brand Introduction:
+ * Scene 1: Deep emerald (#092820) ambient background.
  * Scene 2: Champagne-gold light sweep moves across the screen.
- * Scene 3: The H brand symbol appears.
- * Scene 4: Reveal HER HEALTH JOURNEY in bold typography.
- * Scene 5: Display KNOW YOUR BODY. OWN YOUR JOURNEY.
- * Scene 6: Smooth transition into the real application.
+ * Scene 3: Reveal HER HEALTH JOURNEY emblem with smooth scale and fade animation.
+ * Scene 4: Reveal brand name with elegant typography.
+ * Scene 5: Display tagline: KNOW YOUR BODY. OWN YOUR JOURNEY.
+ * Scene 6: Add subtle gold shimmer and botanical visual movement.
+ * Scene 7: Smooth transition into the main website.
  */
 export function CinematicIntro({ onComplete }: CinematicIntroProps) {
   const prefersReducedMotion = useReducedMotion();
@@ -29,7 +30,7 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
     });
   }, []);
 
-  // Auto-advance after Scenes 1–5 complete (~4.8s), or promptly under reduced motion
+  // Auto-advance after sequence completes (~4.9s), or promptly under reduced motion (750ms)
   useEffect(() => {
     if (prefersReducedMotion) {
       const quickTimer = window.setTimeout(() => {
@@ -40,17 +41,17 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
 
     const exitTimer = window.setTimeout(() => {
       finishIntro();
-    }, 4800);
+    }, 4900);
 
     return () => window.clearTimeout(exitTimer);
   }, [prefersReducedMotion, finishIntro, onComplete]);
 
-  // Scene 6 completion callback after smooth dissolve
+  // Scene 7 completion callback after smooth dissolve into main application
   useEffect(() => {
     if (!exiting) return;
     const doneTimer = window.setTimeout(() => {
       onComplete();
-    }, prefersReducedMotion ? 100 : 600);
+    }, prefersReducedMotion ? 100 : 650);
     return () => window.clearTimeout(doneTimer);
   }, [exiting, onComplete, prefersReducedMotion]);
 
@@ -110,6 +111,73 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
           />
         )}
 
+        {/* Scene 6: Botanical visual movement & delicate gold shimmer sparkles */}
+        {!prefersReducedMotion && (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            {/* Drifting botanical leaf accents */}
+            <motion.svg
+              className="absolute left-[10%] sm:left-[16%] bottom-[18%] w-10 h-10 sm:w-12 sm:h-12 text-[#27836A]/40"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              initial={{ opacity: 0, y: 35, rotate: -20, scale: 0.8 }}
+              animate={{
+                opacity: [0, 0.5, 0.4, 0],
+                y: [35, -20, -55],
+                rotate: [-20, 5, 25],
+                scale: [0.8, 1.1, 0.95],
+              }}
+              transition={{ delay: 3.1, duration: 2.1, ease: 'easeOut' }}
+            >
+              <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
+            </motion.svg>
+
+            <motion.svg
+              className="absolute right-[12%] sm:right-[18%] top-[20%] w-12 h-12 sm:w-14 sm:h-14 text-[#C5A66B]/35"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              initial={{ opacity: 0, y: -25, rotate: 25, scale: 0.75 }}
+              animate={{
+                opacity: [0, 0.45, 0.35, 0],
+                y: [-25, 15, 45],
+                rotate: [25, 10, -8],
+                scale: [0.75, 1.05, 0.9],
+              }}
+              transition={{ delay: 3.25, duration: 2.1, ease: 'easeOut' }}
+            >
+              <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
+            </motion.svg>
+
+            {/* Subtle gold shimmer particles */}
+            {[
+              { top: '34%', left: '28%', delay: 3.15, size: 4 },
+              { top: '26%', right: '30%', delay: 3.3, size: 5 },
+              { top: '60%', left: '24%', delay: 3.42, size: 3.5 },
+              { top: '64%', right: '26%', delay: 3.5, size: 4.5 },
+              { top: '42%', left: '49%', delay: 3.2, size: 5 },
+            ].map((sparkle, idx) => (
+              <motion.div
+                key={idx}
+                className="absolute rounded-full"
+                style={{
+                  top: sparkle.top,
+                  left: sparkle.left,
+                  right: sparkle.right,
+                  width: sparkle.size,
+                  height: sparkle.size,
+                  backgroundColor: '#E4D2A5',
+                  boxShadow: '0 0 10px 2px rgba(197, 166, 107, 0.7)',
+                }}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{
+                  opacity: [0, 0.95, 0.5, 0.85, 0],
+                  scale: [0, 1.4, 0.85, 1.25, 0],
+                }}
+                transition={{ delay: sparkle.delay, duration: 1.6, ease: 'easeInOut' }}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Skip Intro control aligned to .page-container */}
         <div className="absolute inset-x-0 top-5 sm:top-7 z-20 pointer-events-none">
           <div className="page-container flex justify-end">
@@ -139,7 +207,7 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
               className="mb-8"
             >
               <BrandLogo
-                className="w-20 h-20 sm:w-24 sm:h-24"
+                className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32"
                 showSweep={!prefersReducedMotion}
               />
             </motion.div>

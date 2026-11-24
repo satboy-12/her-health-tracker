@@ -21,7 +21,7 @@ import {
 } from '../utils/validation';
 
 export function RegisterPage() {
-  const { register, loginWithGoogle } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState('');
@@ -35,25 +35,10 @@ export function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<ApiError | string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [googleBusy, setGoogleBusy] = useState(false);
 
   const strength = useMemo(() => evaluatePasswordStrength(password), [password]);
   const passwordsMatch = confirmPassword.length > 0 && confirmPassword === password;
   const passwordsMismatch = confirmPassword.length > 0 && confirmPassword !== password;
-
-  const handleGoogleSignIn = async () => {
-    setApiError(null);
-    setGoogleBusy(true);
-    try {
-      await loginWithGoogle();
-      navigate('/dashboard', { replace: true });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unable to sign in with Google.';
-      setApiError(msg);
-    } finally {
-      setGoogleBusy(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,8 +79,17 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center py-8 sm:py-12">
-      <div className="page-container flex flex-col items-center">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center py-8 sm:py-12 relative overflow-hidden">
+      {/* Subtle emerald silk ambient background */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-15"
+        style={{
+          backgroundImage: 'radial-gradient(ellipse at 50% 15%, rgba(39, 131, 106, 0.4) 0%, transparent 65%)',
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="page-container flex flex-col items-center relative z-10">
         <div className="w-full max-w-[500px] flex flex-col gap-5">
           <Link
             to="/"
@@ -104,72 +98,26 @@ export function RegisterPage() {
             <BrandLogo className="w-11 h-11" />
             <div className="flex flex-col">
               <span className="leading-tight">Her Health Journey</span>
-              <span className="text-[0.65rem] tracking-wider font-semibold text-[var(--brand-jade)] uppercase">Know Your Body. Own Your Journey.</span>
+              <span className="text-[0.65rem] tracking-wider font-semibold text-[var(--brand-jade)] uppercase">
+                Know Your Body. Own Your Journey.
+              </span>
             </div>
           </Link>
 
-          <div className="hhj-card p-5 sm:p-8 flex flex-col gap-5">
+          <div className="hhj-card p-6 sm:p-8 flex flex-col gap-5 border border-[var(--border-primary)] shadow-[var(--shadow-card)]">
             <div>
-              <p className="hhj-eyebrow">Quick setup</p>
+              <p className="hhj-eyebrow">Quick Setup</p>
               <h1 className="font-display font-bold text-2xl sm:text-[1.75rem] text-[var(--ink)] mt-1">
-                Create your health account
+                Create Your Account
               </h1>
               <p className="text-sm text-[var(--muted)] mt-1">
-                Start immediately with Google + Cloud Firestore, or register with a Spring Boot backend account.
+                Begin your private, encrypted health journey with dedicated email and password credentials.
               </p>
             </div>
 
             {apiError && (
-              <ErrorState error={apiError} expectedEndpoint="Firebase Auth / POST /api/auth/register" />
+              <ErrorState error={apiError} expectedEndpoint="POST /api/auth/register" />
             )}
-
-            <button
-              type="button"
-              onClick={() => void handleGoogleSignIn()}
-              disabled={googleBusy || submitting}
-              className="gsi-material-button"
-            >
-              <div className="gsi-material-button-state" />
-              <div className="gsi-material-button-content-wrapper">
-                <div className="gsi-material-button-icon">
-                  <svg
-                    version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 48 48"
-                    style={{ display: 'block' }}
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill="#EA4335"
-                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                    />
-                    <path fill="none" d="M0 0h48v48H0z" />
-                  </svg>
-                </div>
-                <span className="gsi-material-button-contents">
-                  {googleBusy ? 'Connecting to Google...' : 'Sign in with Google'}
-                </span>
-                <span style={{ display: 'none' }}>Sign in with Google</span>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-3 text-xs text-[var(--muted)]">
-              <span className="h-px flex-1 bg-[var(--line)]" />
-              <span>or Spring Boot registration</span>
-              <span className="h-px flex-1 bg-[var(--line)]" />
-            </div>
 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
               <FormInput
@@ -180,9 +128,15 @@ export function RegisterPage() {
                 value={fullName}
                 onChange={(e) => {
                   setFullName(e.target.value);
-                  if (errors.fullName) setErrors((p) => ({ ...p, fullName: '' }));
+                  if (errors.fullName) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.fullName;
+                      return next;
+                    });
+                  }
                 }}
-                placeholder="Your full name"
+                placeholder="Jane Doe"
                 icon={<User className="w-4 h-4" aria-hidden="true" />}
                 error={errors.fullName}
               />
@@ -195,9 +149,15 @@ export function RegisterPage() {
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  if (errors.email) setErrors((p) => ({ ...p, email: '' }));
+                  if (errors.email) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.email;
+                      return next;
+                    });
+                  }
                 }}
-                placeholder="name@example.com"
+                placeholder="jane@example.com"
                 icon={<Mail className="w-4 h-4" aria-hidden="true" />}
                 error={errors.email}
               />
@@ -211,9 +171,15 @@ export function RegisterPage() {
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (errors.password) setErrors((p) => ({ ...p, password: '' }));
+                    if (errors.password) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.password;
+                        return next;
+                      });
+                    }
                   }}
-                  placeholder="Create a strong password"
+                  placeholder="Minimum 8 characters"
                   icon={<Lock className="w-4 h-4" aria-hidden="true" />}
                   error={errors.password}
                   trailing={
@@ -232,31 +198,32 @@ export function RegisterPage() {
                   }
                 />
 
-                <div className="space-y-1 pt-0.5">
-                  <div className="flex gap-1 h-1.5 w-full bg-[var(--surface2)] rounded-full overflow-hidden">
-                    {[1, 2, 3, 4].map((segment) => (
+                {password.length > 0 && (
+                  <div className="flex items-center gap-2 pt-1 text-xs">
+                    <div className="flex-1 h-1.5 rounded-full bg-[var(--surface-secondary)] overflow-hidden flex gap-0.5">
                       <div
-                        key={segment}
-                        className={`w-1/4 transition-colors ${
-                          segment <= strength.score ? 'bg-[var(--good)]' : 'bg-[var(--line)]'
+                        className={`h-full transition-all duration-300 ${
+                          strength.score >= 1 ? 'w-1/3 bg-[#E58B91]' : 'w-0'
+                        } ${strength.score >= 2 ? 'bg-[#D8AA65]' : ''} ${
+                          strength.score >= 3 ? 'bg-[#27836A]' : ''
                         }`}
                       />
-                    ))}
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          strength.score >= 2 ? 'w-1/3 bg-[#D8AA65]' : 'w-0'
+                        } ${strength.score >= 3 ? 'bg-[#27836A]' : ''}`}
+                      />
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          strength.score >= 3 ? 'w-1/3 bg-[#27836A]' : 'w-0'
+                        }`}
+                      />
+                    </div>
+                    <span className="font-semibold text-[var(--muted)] capitalize">
+                      {strength.label}
+                    </span>
                   </div>
-                  <p
-                    className={`text-xs font-medium ${
-                      strength.tone === 'error'
-                        ? 'text-[var(--bad)]'
-                        : strength.tone === 'secondary'
-                        ? 'text-[var(--fol-ink)]'
-                        : strength.tone === 'tertiary'
-                        ? 'text-[var(--good)]'
-                        : 'text-[var(--muted)]'
-                    }`}
-                  >
-                    {strength.label}
-                  </p>
-                </div>
+                )}
               </div>
 
               <FormInput
@@ -267,23 +234,28 @@ export function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
-                  if (errors.confirmPassword) setErrors((p) => ({ ...p, confirmPassword: '' }));
+                  if (errors.confirmPassword) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.confirmPassword;
+                      return next;
+                    });
+                  }
                 }}
                 placeholder="Re-enter your password"
                 icon={<Lock className="w-4 h-4" aria-hidden="true" />}
-                error={
-                  passwordsMismatch || errors.confirmPassword
-                    ? errors.confirmPassword || 'Passwords do not match.'
-                    : null
-                }
+                error={errors.confirmPassword}
                 trailing={
-                  <>
+                  <div className="flex items-center gap-1">
                     {passwordsMatch && (
-                      <CheckCircle2 className="w-4 h-4 text-[var(--good)]" aria-hidden="true" />
+                      <CheckCircle2
+                        className="w-4 h-4 text-[#287B52]"
+                        aria-label="Passwords match"
+                      />
                     )}
                     <button
                       type="button"
-                      aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                       onClick={() => setShowConfirmPassword((prev) => !prev)}
                       className="p-1 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
                     >
@@ -293,43 +265,54 @@ export function RegisterPage() {
                         <Eye className="w-4 h-4" aria-hidden="true" />
                       )}
                     </button>
-                  </>
+                  </div>
                 }
               />
+              {passwordsMismatch && (
+                <p className="text-xs text-[var(--status-error)] -mt-2">Passwords do not match.</p>
+              )}
 
-              <div className="flex flex-col gap-1">
+              <div className="pt-1">
                 <label className="flex items-start gap-2.5 text-xs text-[var(--muted)] cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={acceptedPrivacy}
                     onChange={(e) => {
                       setAcceptedPrivacy(e.target.checked);
-                      if (errors.acceptedPrivacy) setErrors((p) => ({ ...p, acceptedPrivacy: '' }));
+                      if (errors.acceptedPrivacy) {
+                        setErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.acceptedPrivacy;
+                          return next;
+                        });
+                      }
                     }}
-                    className="w-4 h-4 mt-0.5 rounded accent-[var(--plum)] cursor-pointer"
+                    className="w-4 h-4 mt-0.5 rounded accent-[var(--brand-emerald)] cursor-pointer shrink-0"
                   />
                   <span>
-                    I consent to private health record processing through my Spring Boot backend account.
+                    I accept the{' '}
+                    <strong className="text-[var(--ink)]">Terms of Service</strong> and acknowledge the{' '}
+                    <strong className="text-[var(--ink)]">Privacy Policy</strong>. My wellness data is stored privately and securely.
                   </span>
                 </label>
                 {errors.acceptedPrivacy && (
-                  <p className="text-xs font-medium text-[var(--bad)]" role="alert">
-                    {errors.acceptedPrivacy}
-                  </p>
+                  <p className="text-xs text-[var(--status-error)] mt-1.5">{errors.acceptedPrivacy}</p>
                 )}
               </div>
 
-              <PrimaryButton type="submit" disabled={submitting} className="w-full mt-1">
-                <span>{submitting ? 'Creating Account...' : 'Create Account'}</span>
+              <PrimaryButton type="submit" disabled={submitting} className="w-full mt-2">
+                <span>{submitting ? 'Creating account...' : 'Create Account'}</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </PrimaryButton>
             </form>
 
-            <div className="text-center pt-3 border-t border-[var(--line)] text-xs text-[var(--muted)]">
-              Already have an account?{' '}
-              <Link to="/login" className="text-[var(--plum)] font-bold hover:underline">
-                Log in
-              </Link>
+            <div className="pt-4 border-t border-[var(--border-primary)] text-center">
+              <p className="text-xs text-[var(--muted)]">
+                Already have an account?{' '}
+                <Link to="/login" className="text-[var(--brand-emerald)] font-bold hover:underline">
+                  Sign In
+                </Link>
+              </p>
             </div>
           </div>
         </div>
