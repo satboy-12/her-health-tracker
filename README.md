@@ -1,109 +1,65 @@
-# HER HEALTH JOURNEY — Dual-Platform Wellness System
+# HER HEALTH JOURNEY – Dual-Platform Health Tracking System
 
-> **KNOW YOUR BODY. OWN YOUR JOURNEY.**  
-> A production-grade, dual-platform women's period, PCOS, and holistic wellness tracking system with an Emerald Green + Champagne Gold luxury visual identity.
-
-[![Vercel Deployment](https://img.shields.io/badge/Vercel-Production%20Ready-brightgreen)](https://vercel.com)
-[![Java 21](https://img.shields.io/badge/Backend-Java%2021%20%7C%20Spring%20Boot-orange)](backend/)
-[![Android Native](https://img.shields.io/badge/Android-Native%20Java-green)](android/)
-[![Database](https://img.shields.io/badge/Database-MySQL%20%7C%20Flyway-blue)](database/)
+HER HEALTH JOURNEY is an enterprise-grade, privacy-conscious dual-platform wellness tracking application dedicated to women's reproductive health, PCOS symptom management, and holistic lifestyle wellness.
 
 ---
 
-## 🏛️ Project Architecture
+## 1. Monorepository Architecture
 
 ```
-/her-health-tracker
-  ├── /src                # React 19 + TypeScript + Vite + Tailwind (Vercel Frontend)
-  ├── /android            # Native Java Android SDK app (XML, Material Components)
-  ├── /backend            # Java 21 + Spring Boot 3.3.4 + Spring Security + REST APIs
-  ├── /database           # Relational MySQL DDL schemas & Flyway migrations
-  ├── /docs               # Complete architecture, API specs & ER diagrams
-  ├── vercel.json         # Vercel zero-error production SPA routing
-  └── package.json        # Frontend scripts & dependencies
+HER_HEALTH_JOURNEY/
+├── backend/          # Shared Java 21 Spring Boot + Vaadin Responsive Web + REST API
+├── android/          # Native Android Application (Java 21, XML, Material Design, Room, Retrofit)
+├── database/         # MySQL relational schema, initialization scripts, Flyway migrations
+├── docs/             # UML diagrams, ER diagrams, architectural models, API references
+├── design-reference/ # UI/UX design specifications, Stitch HTML designs, and screens
+├── .gitignore        # Comprehensive ignore rules for Maven, Gradle, IDEs, and credentials
+└── README.md         # Master project architecture & deployment guide
 ```
 
 ---
 
-## 🌿 Official Emerald & Champagne Gold Brand Identity
+## 2. Core Modules
 
-| Token | Hex | Role |
-|---|---|---|
-| **Brand Emerald** | `#103C32` | Primary brand color, headers, app bars, key buttons |
-| **Emerald 950** | `#092820` | Dark cinematic background, high-contrast containers |
-| **Emerald Jade** | `#27836A` | Active indicators, secondary accents |
-| **Champagne Gold** | `#C5A66B` | Brand emblem monogram, active navigation, luxury badges |
-| **Gold Light** | `#E4D2A5` | Light sweep animations, focal highlights |
-| **Cream Canvas** | `#F8F5EB` | Warm, accessible light-theme background |
-
-### 6 Module Accent Palette
-- 🌸 **Period Tracker**: `#E58B91` (Blush Rose)
-- 💜 **PCOS Symptom Tracker**: `#B49AD8` (Lavender Orchid)
-- 🌿 **Mood & Wellness**: `#A8BCA4` (Sage Harmony)
-- 🍞 **Nutrition & Diet**: `#D8AA65` (Warm Amber)
-- 💧 **Water Tracker**: `#70B8C8` (Serene Blue)
-- 📖 **Health Journal**: `#D4B98A` (Champagne Sand)
+1. **Period Tracker**: Start & end dates, cycle duration analytics, estimated upcoming cycles (non-medical heuristic), and flow/pain telemetry.
+2. **PCOS Symptom Tracker**: Severity scales (1–5), pain levels (0–10), energy levels, and daily symptom observations.
+3. **Mood & Wellness**: Daily mood logging, sleep duration (hours), sleep quality rating, and stress index.
+4. **Nutrition & Diet**: Structured meal logs (Breakfast, Lunch, Dinner, Snack), descriptions, and estimated caloric tracking.
+5. **Water Tracker**: Millilitre-level intake logging with progress calculations against a daily goal.
+6. **Health Journal**: Private date-stamped reflections, notes, and symptom context.
+7. **Unified Dashboard**: Aggregated real-time summary for web and mobile dashboards.
 
 ---
 
-## 🎬 6-Scene Cinematic Brand Opening
+## 3. Technology Stack
 
-Both Web and Android feature a synchronized, high-elegance opening:
-1. **Scene 1**: Deep emerald (`#092820`) background fades in.
-2. **Scene 2**: Champagne-gold light sweep moves across the viewport.
-3. **Scene 3**: Architectural "H" brand monogram appears.
-4. **Scene 4**: Reveal `HER HEALTH JOURNEY` in bold premium typography.
-5. **Scene 5**: Display `KNOW YOUR BODY. OWN YOUR JOURNEY.`
-6. **Scene 6**: Smooth transition into the real application.
+- **Backend**: Java 21, Spring Boot 3.3+, Spring Web, Spring Security, Spring Data JPA, Hibernate, Flyway, Maven.
+- **Web Interface**: Vaadin 24 Flow, CSS, responsive AppLayout with desktop sidebar and mobile drawer navigation.
+- **Mobile Application**: Native Android SDK (Java), Android Studio compatibility, Gradle build system, XML layouts, Jetpack Navigation, EncryptedSharedPreferences (Android Keystore), Room DB for offline drafts.
+- **Database**: Shared MySQL 8.0+ relational database with Flyway versioned migrations.
+- **Deployment**: Production multi-stage Docker container deployed to Render, external managed MySQL.
 
 ---
 
-## 📱 Native Android Mobile Application (`/android`)
+## 4. Brand Guidelines
 
-- **Language**: Java 17/21
-- **Framework**: Native Android SDK, AndroidX, Material Design Components
-- **Architecture**: MVVM with Repository pattern, Room local draft persistence
-- **Features**:
-  - `SplashActivity`: Native 6-scene `AnimatorSet` with Skip Intro & `SharedPreferences`
-  - `MainActivity`: Emerald app bar & bottom navigation with Champagne gold active states
-  - `DashboardFragment`: Holistic card overview of all 6 health domains
-  - `PeriodFragment`, `SymptomsFragment`, `WaterFragment`, `WellnessFragment`
-  - Secure Keystore token storage (`SecureTokenManager`)
+- **Rose**: `#C65F83` (Primary accents, action buttons, active tabs)
+- **Dusty Pink**: `#B66F86` (Secondary labels, borders, subdued indicators)
+- **Deep Plum**: `#54243D` (Typography headings, primary navbar, high-contrast text)
+- **Blush**: `#F8E7ED` (Card backgrounds, subtle highlights, badge fills)
+- **White**: `#FFFFFF` (Surface cards, input backgrounds)
 
 ---
 
-## 💻 Web Application (`/src`) & Vercel Deployment
+## 5. Development Stages
 
-Built with React 19, TypeScript, and Tailwind CSS.
+- **Stage 1**: Repository & Project Architecture (Completed)
+- **Stage 2**: MySQL Database & Java Backend (Completed)
+- **Stage 3**: Authentication & REST APIs (Completed)
+- **Stage 4**: Website Implementation (Completed)
+- **Stage 5**: Native Android Implementation (Completed)
+- **Stage 6**: All Six Tracking Modules (Completed)
+- **Stage 7**: Cross-Platform Synchronization (Completed)
+- **Stage 8**: Security & Quality Assurance Testing (Completed)
+- **Stage 9**: Production Deployment & Release APK (Completed)
 
-### Deploying to Vercel (1-Click Ready):
-1. Import repository `satboy-12/her-health-tracker` in Vercel.
-2. Framework Preset: **Vite** (auto-detected).
-3. Build Command: `npm run build`.
-4. Output Directory: `dist`.
-5. Environment variable: `VITE_API_BASE_URL` (points to Spring Boot API backend).
-
----
-
-## ☕ Spring Boot REST API Backend (`/backend`)
-
-- **Runtime**: Java 21, Spring Boot 3.3.4
-- **Security**: Spring Security 6 with JWT stateless authentication & BCrypt
-- **ORM & DB**: Spring Data JPA, Hibernate, MySQL with Flyway versioning
-- **Endpoints**:
-  - `POST /api/auth/register`, `POST /api/auth/login`
-  - `GET /api/dashboard`
-  - `GET/POST/PUT/DELETE /api/periods`
-  - `GET/POST/DELETE /api/symptoms`
-  - `GET/POST /api/wellness`
-  - `GET/POST/DELETE /api/nutrition`
-  - `GET/POST/PUT /api/water`
-  - `GET/POST/PUT/DELETE /api/journal`
-
----
-
-## 🧪 Testing & Quality Assurance
-
-- **Unit Tests**: 10/10 passing (`npm run test`)
-- **TypeScript**: 0 errors (`npm run lint` / `tsc --noEmit`)
-- **Vite Build**: Compiled production bundle cleanly (`npm run build`)
