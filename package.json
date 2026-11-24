@@ -7,7 +7,8 @@
     "dev": "vite --port 3000 --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --port 3000",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx --test src/utils/validation.test.ts src/utils/healthCalculations.test.ts src/utils/introStorage.test.ts src/utils/uiHelpers.test.ts"
   },
   "dependencies": {
     "firebase": "^11.4.0",
