@@ -99,10 +99,13 @@ export function RegisterPage() {
         <div className="w-full max-w-[500px] flex flex-col gap-5">
           <Link
             to="/"
-            className="inline-flex items-center gap-2.5 font-display font-bold text-[var(--ink)] self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-champagne)] rounded-xl"
+            className="inline-flex items-center gap-3 font-display font-bold text-lg text-[var(--ink)] self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-champagne)] rounded-xl"
           >
-            <BrandLogo className="w-9 h-9" />
-            <span>Her Health Journey</span>
+            <BrandLogo className="w-11 h-11" />
+            <div className="flex flex-col">
+              <span className="leading-tight">Her Health Journey</span>
+              <span className="text-[0.65rem] tracking-wider font-semibold text-[var(--brand-jade)] uppercase">Know Your Body. Own Your Journey.</span>
+            </div>
           </Link>
 
           <div className="hhj-card p-5 sm:p-8 flex flex-col gap-5">

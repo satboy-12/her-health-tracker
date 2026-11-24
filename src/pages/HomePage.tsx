@@ -126,10 +126,9 @@ export function HomePage() {
   const handleExploreModule = (path: string) => {
     if (isAuthenticated) {
       navigate(path);
-      return;
+    } else {
+      navigate('/login', { state: { from: { pathname: path } } });
     }
-    enterPreviewMode();
-    navigate(path);
   };
 
   return (
@@ -164,16 +163,12 @@ export function HomePage() {
                 <SecondaryButton to="/login" variant="outline">
                   Sign In
                 </SecondaryButton>
-                <button
-                  type="button"
-                  onClick={() => {
-                    enterPreviewMode();
-                    navigate('/dashboard');
-                  }}
-                  className="inline-flex items-center justify-center min-h-[42px] px-3 py-2 text-sm font-semibold text-[var(--plum)] hover:underline cursor-pointer whitespace-nowrap"
+                <a
+                  href="#trackers"
+                  className="inline-flex items-center justify-center min-h-[42px] px-3 py-2 text-sm font-semibold text-[var(--brand-emerald)] hover:underline cursor-pointer whitespace-nowrap"
                 >
-                  Explore UI Modules
-                </button>
+                  Explore Features
+                </a>
               </div>
             </div>
 
@@ -182,9 +177,10 @@ export function HomePage() {
               <div className="relative overflow-hidden rounded-[14px] aspect-[4/3] bg-[var(--surface2)]">
                 {!heroImageFailed ? (
                   <img
-                    src="/src/assets/images/wellness_hero_editorial_1795442267179.jpg"
-                    alt="Warm linen wellness journal beside herbal tea and botanical petals on sunlit stone"
-                    referrerPolicy="no-referrer"
+                    src="/assets/images/hero_wellness.jpg"
+                    alt="Editorial luxury wellness sanctuary with woman in mindful tranquility surrounded by lush emerald greenery"
+                    loading="eager"
+                    decoding="async"
                     onError={() => setHeroImageFailed(true)}
                     className="w-full h-full object-cover"
                   />

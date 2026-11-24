@@ -170,13 +170,33 @@ export function NutritionPage() {
 
   return (
     <AppShell>
-      {/* Pagehead with date stepper */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <p className="hhj-eyebrow">Daily fuel</p>
-          <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
-            Nutrition
+      {/* Editorial Header Banner with Artwork */}
+      <div className="relative overflow-hidden rounded-[18px] border border-[var(--border-primary)] bg-gradient-to-r from-[#103C32] via-[#174F40] to-[#092820] text-white p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex-1">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#D8AA65]/25 text-[#E4D2A5] border border-[#D8AA65]/40 mb-2">
+            Nourish &amp; Balance
+          </span>
+          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[#F8F5EB]">
+            Nutrition &amp; Macro Balance
           </h1>
+          <p className="text-[#B9D2C5] text-sm mt-1.5 max-w-[55ch] leading-relaxed">
+            Log breakfast, lunch, dinner, and wholesome snacks with calorie and macronutrient tracking designed for sustained metabolic vitality.
+          </p>
+        </div>
+        <div className="w-full md:w-[220px] h-[130px] rounded-[14px] overflow-hidden shrink-0 border border-[#D8AA65]/30 shadow-md">
+          <img
+            src="/assets/images/nutrition_food.jpg"
+            alt="Mediterranean nourishing breakfast bowl with avocado, berries and greens in emerald bowl"
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      </div>
+
+      {/* Date stepper bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-[var(--muted)]">Meal diary for selected date</p>
         </div>
 
         <div className="flex items-center gap-2">

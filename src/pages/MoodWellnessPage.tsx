@@ -106,15 +106,27 @@ export function MoodWellnessPage() {
 
   return (
     <AppShell>
-      {/* Pagehead */}
-      <div>
-        <p className="hhj-eyebrow">Mind and rest</p>
-        <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
-          Mood and sleep
-        </h1>
-        <p className="text-sm text-[var(--muted)] mt-1 max-w-[60ch]">
-          Small daily check-ins show how your mood, sleep, and stress move together.
-        </p>
+      {/* Editorial Header Banner with Artwork */}
+      <div className="relative overflow-hidden rounded-[18px] border border-[var(--border-primary)] bg-gradient-to-r from-[#103C32] via-[#174F40] to-[#092820] text-white p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex-1">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#A8BCA4]/25 text-[#E4D2A5] border border-[#A8BCA4]/40 mb-2">
+            Mind &amp; Rest
+          </span>
+          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[#F8F5EB]">
+            Mood, Sleep &amp; Stress
+          </h1>
+          <p className="text-[#B9D2C5] text-sm mt-1.5 max-w-[55ch] leading-relaxed">
+            Track daily emotional state, sleep duration, and restorative habits to see how rest and stress balance together.
+          </p>
+        </div>
+        <div className="w-full md:w-[220px] h-[130px] rounded-[14px] overflow-hidden shrink-0 border border-[#A8BCA4]/30 shadow-md">
+          <img
+            src="/assets/images/mood_wellness.jpg"
+            alt="Zen meditation corner with glowing ceramic candle and jade cup"
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
       </div>
 
       <ApiIntegrationBanner

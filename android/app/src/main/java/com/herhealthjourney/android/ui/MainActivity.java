@@ -41,7 +41,9 @@ public class MainActivity extends AppCompatActivity {
             if (item.getItemId() == R.id.action_logout) {
                 tokenManager.clear();
                 Toast.makeText(this, "Signed out", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(this, LoginActivity.class));
+                Intent logoutIntent = new Intent(this, LoginActivity.class);
+                logoutIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(logoutIntent);
                 finish();
                 return true;
             }

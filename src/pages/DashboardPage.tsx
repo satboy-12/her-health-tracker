@@ -209,6 +209,32 @@ export function DashboardPage() {
         <LoadingState rows={4} />
       ) : (
         <div className="flex flex-col gap-5">
+          {/* Luxury Editorial Welcome Banner */}
+          <div className="relative overflow-hidden rounded-[18px] border border-[var(--border-primary)] shadow-sm bg-gradient-to-r from-[#103C32] via-[#174F40] to-[#092820] text-white">
+            <div className="flex flex-col md:flex-row items-center justify-between">
+              <div className="p-6 md:p-8 flex-1 z-10">
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#C5A66B]/25 text-[#E4D2A5] border border-[#C5A66B]/40 mb-3">
+                  {todayFormatted}
+                </span>
+                <h2 className="font-display font-bold text-2xl md:text-3xl text-[#F8F5EB] leading-snug">
+                  {heading}
+                </h2>
+                <p className="text-[#B9D2C5] text-sm md:text-base mt-2 max-w-[48ch] leading-relaxed">
+                  Your daily holistic sanctuary. All your biological rhythms, symptoms, and self-care in one synchronized view.
+                </p>
+              </div>
+              <div className="w-full md:w-[320px] h-[160px] md:h-[180px] shrink-0 relative overflow-hidden">
+                <img
+                  src="/assets/images/dashboard_welcome.jpg"
+                  alt="Luxury healthcare flat-lay on cream marble with deep emerald notebook"
+                  className="w-full h-full object-cover object-center opacity-90 transition-transform duration-700 hover:scale-105"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#103C32] via-transparent to-transparent" />
+              </div>
+            </div>
+          </div>
+
           {/* Cycle Overview + Today Summary */}
           <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-5">
             <DashboardCard className="flex flex-col sm:flex-row items-center gap-6 sm:gap-7">

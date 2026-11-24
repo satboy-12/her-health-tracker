@@ -117,15 +117,27 @@ export function WaterTrackerPage() {
 
   return (
     <AppShell>
-      {/* Pagehead */}
-      <div>
-        <p className="hhj-eyebrow">Hydration</p>
-        <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
-          Water
-        </h1>
-        <p className="text-sm text-[var(--muted)] mt-1">
-          One-tap intake logging, daily target configuration, and weekly hydration history.
-        </p>
+      {/* Editorial Header Banner with Artwork */}
+      <div className="relative overflow-hidden rounded-[18px] border border-[var(--border-primary)] bg-gradient-to-r from-[#103C32] via-[#174F40] to-[#092820] text-white p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex-1">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#70B8C8]/25 text-[#E4D2A5] border border-[#70B8C8]/40 mb-2">
+            Hydrate &amp; Vitalize
+          </span>
+          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[#F8F5EB]">
+            Hydration Tracker
+          </h1>
+          <p className="text-[#B9D2C5] text-sm mt-1.5 max-w-[55ch] leading-relaxed">
+            One-tap water intake logging, customizable daily ml targets, and 7-day hydration trend history.
+          </p>
+        </div>
+        <div className="w-full md:w-[220px] h-[130px] rounded-[14px] overflow-hidden shrink-0 border border-[#70B8C8]/30 shadow-md bg-[#F8F5EB]">
+          <img
+            src="/assets/images/water_hydration.svg"
+            alt="Fluted glass carafe with fresh mint and crystal clear water"
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
       </div>
 
       <ApiIntegrationBanner
