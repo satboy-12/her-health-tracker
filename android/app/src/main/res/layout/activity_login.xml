@@ -15,11 +15,11 @@
 
         <!-- Architectural Brand Emblem -->
         <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:layout_marginBottom="16dp"
             android:contentDescription="@string/app_name"
-            android:src="@drawable/ic_brand_logo" />
+            android:src="@drawable/brand_logo" />
 
         <TextView
             android:layout_width="wrap_content"

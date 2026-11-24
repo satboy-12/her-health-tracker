@@ -26,9 +26,13 @@ public class LoginActivity extends AppCompatActivity {
         TextInputEditText etUsername = findViewById(R.id.etUsername);
         TextInputEditText etPassword = findViewById(R.id.etPassword);
         Button btnLogin = findViewById(R.id.btnLogin);
-        TextView tvRegister = findViewById(R.id.tvRegisterLink);
-
-        tvRegister.setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
+        TextView tvRegister = findViewById(R.id.tvGoToRegister);
+        if (tvRegister == null) {
+            tvRegister = findViewById(R.id.tvRegisterLink);
+        }
+        if (tvRegister != null) {
+            tvRegister.setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
+        }
 
         btnLogin.setOnClickListener(v -> {
             String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";

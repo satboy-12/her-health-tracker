@@ -48,13 +48,13 @@
         <!-- Scene 3: Architectural Brand Emblem -->
         <ImageView
             android:id="@+id/ivBrandLogo"
-            android:layout_width="96dp"
-            android:layout_height="96dp"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
             android:alpha="0"
             android:scaleX="0.75"
             android:scaleY="0.75"
             android:contentDescription="@string/app_name"
-            android:src="@drawable/ic_brand_logo" />
+            android:src="@drawable/brand_logo" />
 
         <!-- Scene 4: Reveal HER HEALTH JOURNEY in bold typography -->
         <TextView
