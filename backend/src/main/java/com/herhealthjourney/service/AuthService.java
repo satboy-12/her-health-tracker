@@ -35,19 +35,32 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.username())) {
-            throw new BadRequestException("Username is already taken.");
+        String effectiveEmail = request.email() != null ? request.email().trim().toLowerCase() : null;
+        if (effectiveEmail == null || effectiveEmail.isEmpty()) {
+            throw new BadRequestException("Email is required.");
         }
-        if (userRepository.existsByEmail(request.email())) {
-            throw new BadRequestException("Email is already registered.");
+        if (userRepository.existsByEmail(effectiveEmail)) {
+            throw new com.herhealthjourney.exception.ConflictException("Email is already registered. Please log in.");
         }
 
+        String username = request.effectiveUsername();
+        if (userRepository.existsByUsername(username)) {
+            if (request.username() != null && !request.username().trim().isEmpty()) {
+                throw new com.herhealthjourney.exception.ConflictException("Username is already taken.");
+            }
+            // Auto-resolve derived username collisions with unique suffix
+            username = username + "_" + (System.currentTimeMillis() % 10000);
+        }
+
+        String firstName = request.effectiveFirstName();
+        String lastName = request.effectiveLastName();
+
         User user = new User(
-            request.username(),
-            request.email(),
+            username,
+            effectiveEmail,
             passwordEncoder.encode(request.password()),
-            request.firstName(),
-            request.lastName(),
+            firstName,
+            lastName,
             request.dateOfBirth()
         );
 
