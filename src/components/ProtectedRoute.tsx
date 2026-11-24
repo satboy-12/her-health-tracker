@@ -73,8 +73,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center py-10">
         <div className="page-container flex flex-col items-center">
           <div className="w-full max-w-[480px] hhj-card p-6 sm:p-8 flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-              <BrandLogo className="w-10 h-10" />
+            <div className="flex items-center gap-3.5">
+              <BrandLogo variant="symbol" surface="bare" className="w-12 h-12" />
               <div>
                 <p className="hhj-eyebrow">Security Verification</p>
                 <h1 className="font-display font-bold text-xl text-[var(--ink)]">
@@ -84,7 +84,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
             </div>
 
             <p className="text-sm text-[var(--muted)] leading-relaxed">
-              To enforce Cloud Firestore owner protection for your health records, please verify{' '}
+              To protect your private Firebase Realtime Database health vault, please verify{' '}
               <strong className="text-[var(--ink)]">{user?.email}</strong> using the link sent to
               your inbox.
             </p>

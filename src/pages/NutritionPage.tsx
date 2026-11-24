@@ -225,7 +225,7 @@ export function NutritionPage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint={`Cloud Firestore · nutrition (${selectedDate})`}
+        expectedEndpoint={`Firebase Realtime Database · nutrition (${selectedDate})`}
         onRetry={loadNutrition}
         retrying={loading}
       />
@@ -338,7 +338,7 @@ export function NutritionPage() {
                 Add food
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                Pick a common food to fill the fields, or enter custom nutrition values to save to Cloud Firestore.
+                Pick a common food to fill the fields, or enter custom nutrition values to save to Firebase Realtime Database.
               </p>
             </header>
 

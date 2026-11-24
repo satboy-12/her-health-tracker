@@ -142,7 +142,7 @@ export function WaterTrackerPage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint={`Cloud Firestore · water (${todayIso})`}
+        expectedEndpoint={`Firebase Realtime Database · water (${todayIso})`}
         onRetry={loadWater}
         retrying={loading}
       />
@@ -340,7 +340,7 @@ export function WaterTrackerPage() {
                   <h2 className="font-display font-bold text-base text-[var(--ink)]">
                     Daily water goal
                   </h2>
-                  <p className="text-xs text-[var(--muted)]">Syncs directly with Cloud Firestore</p>
+                  <p className="text-xs text-[var(--muted)]">Syncs directly with Firebase Realtime Database</p>
                 </div>
                 <form onSubmit={handleUpdateTarget} className="flex items-center gap-2">
                   <input

@@ -148,13 +148,13 @@ export function HealthJournalPage() {
           Health journal
         </h1>
         <p className="text-sm text-[var(--muted)] mt-1 max-w-[60ch]">
-          Symptoms, reflections, and questions for your care team—synced securely with Cloud Firestore.
+          Symptoms, reflections, and questions for your care team—synced securely with Firebase Realtime Database.
         </p>
       </div>
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="Cloud Firestore · journal"
+        expectedEndpoint="Firebase Realtime Database · journal"
         onRetry={loadEntries}
         retrying={loading}
       />
@@ -169,8 +169,8 @@ export function HealthJournalPage() {
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
                 {editingId
-                  ? 'Changes update your saved entry in Cloud Firestore.'
-                  : 'Persists directly to your Cloud Firestore journal.'}
+                  ? 'Changes update your saved entry in Firebase Realtime Database.'
+                  : 'Persists directly to your Firebase Realtime Database journal.'}
               </p>
             </header>
 
@@ -340,7 +340,7 @@ export function HealthJournalPage() {
               title={entries.length === 0 ? 'No entries yet' : 'No matching entries'}
               description={
                 entries.length === 0
-                  ? 'Entries saved to Cloud Firestore will appear here.'
+                  ? 'Entries saved to Firebase Realtime Database will appear here.'
                   : 'Try adjusting your search or tag filter.'
               }
             />

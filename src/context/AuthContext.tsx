@@ -11,8 +11,8 @@ import {
   updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { ensureUserAccountAndProfile } from '../api/firebaseData';
-import { auth } from '../firebase';
+import { auth } from '../firebase/firebase';
+import { ensureUserAccountAndProfile } from '../services/authService';
 import type { AuthUser, LoginPayload, RegisterPayload } from '../types/api';
 
 interface AuthContextValue {
@@ -28,6 +28,7 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const IS_DEV = Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV);
 
 function toAuthUser(fbUser: FirebaseUser): AuthUser {
   return {
@@ -75,9 +76,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setEmailVerified(fbUser.emailVerified);
         if (fbUser.emailVerified) {
           try {
-            await ensureUserAccountAndProfile(fbUser);
+            const profile = await ensureUserAccountAndProfile(fbUser);
+            setUser({
+              id: fbUser.uid,
+              fullName: profile.fullName,
+              email: profile.email || fbUser.email || '',
+              memberSince: profile.memberSince,
+              accountTier: profile.accountTier || 'Firebase Cloud',
+            });
           } catch (err) {
-            console.error('Failed to ensure Firebase user profile:', err);
+            if (IS_DEV) {
+              console.error('[AuthContext] Failed to ensure RTDB user profile:', err);
+            }
           }
         }
       } else {
@@ -96,11 +106,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         auth,
         payload.rememberMe ? browserLocalPersistence : browserSessionPersistence,
       );
-      const cred = await signInWithEmailAndPassword(auth, payload.email, payload.password);
+      const cred = await signInWithEmailAndPassword(auth, payload.email.trim(), payload.password);
       setUser(toAuthUser(cred.user));
       setEmailVerified(cred.user.emailVerified);
       if (cred.user.emailVerified) {
-        await ensureUserAccountAndProfile(cred.user);
+        try {
+          const profile = await ensureUserAccountAndProfile(cred.user);
+          setUser({
+            id: cred.user.uid,
+            fullName: profile.fullName,
+            email: profile.email || cred.user.email || '',
+            memberSince: profile.memberSince,
+            accountTier: profile.accountTier || 'Firebase Cloud',
+          });
+        } catch (err) {
+          if (IS_DEV) {
+            console.error('[AuthContext] Profile provisioning deferred to dashboard:', err);
+          }
+        }
       }
     } catch (err) {
       throw new Error(mapFirebaseAuthError(err, 'Unable to complete sign in.'));
@@ -108,23 +131,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (payload: RegisterPayload) => {
+    const cleanName = payload.fullName.trim();
+    const cleanEmail = payload.email.trim();
     try {
-      const cred = await createUserWithEmailAndPassword(auth, payload.email, payload.password);
-      await updateProfile(cred.user, { displayName: payload.fullName });
+      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, payload.password);
+      await updateProfile(cred.user, { displayName: cleanName });
       await cred.user.reload();
+
       if (!cred.user.emailVerified) {
         try {
           await sendEmailVerification(cred.user);
         } catch (verifyErr) {
-          console.error('Verification email dispatch failed:', verifyErr);
+          if (IS_DEV) {
+            console.error('[AuthContext] Verification email dispatch failed:', verifyErr);
+          }
         }
       } else {
-        await ensureUserAccountAndProfile(cred.user);
+        try {
+          await ensureUserAccountAndProfile(cred.user, cleanName);
+        } catch (profileErr) {
+          if (IS_DEV) {
+            console.error('[AuthContext] Post-register profile init failed:', profileErr);
+          }
+        }
       }
+
       setUser({
         id: cred.user.uid,
-        fullName: payload.fullName,
-        email: cred.user.email || payload.email,
+        fullName: cleanName,
+        email: cred.user.email || cleanEmail,
         accountTier: 'Firebase Cloud',
       });
       setEmailVerified(cred.user.emailVerified);
@@ -149,13 +184,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const current = auth.currentUser;
     if (!current) return false;
     await current.reload();
-    // Force token refresh so Firestore rules receive updated email_verified claim
     await current.getIdToken(true);
     const verified = current.emailVerified;
     setEmailVerified(verified);
     setUser(toAuthUser(current));
     if (verified) {
-      await ensureUserAccountAndProfile(current);
+      try {
+        const profile = await ensureUserAccountAndProfile(current);
+        setUser({
+          id: current.uid,
+          fullName: profile.fullName,
+          email: profile.email || current.email || '',
+          memberSince: profile.memberSince,
+          accountTier: profile.accountTier || 'Firebase Cloud',
+        });
+      } catch (err) {
+        if (IS_DEV) {
+          console.error('[AuthContext] Profile initialization on verification check failed:', err);
+        }
+      }
     }
     return verified;
   }, []);

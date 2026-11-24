@@ -45,9 +45,6 @@ public class SplashActivity extends AppCompatActivity {
         ImageView ivBrandLogo = findViewById(R.id.ivBrandLogo);
         TextView tvBrandTitle = findViewById(R.id.tvBrandTitle);
         TextView tvTagline = findViewById(R.id.tvTagline);
-        View btnSkipIntro = findViewById(R.id.btnSkipIntro);
-
-        btnSkipIntro.setOnClickListener(v -> completeIntro());
 
         SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean alreadySeen = prefs.getBoolean(KEY_INTRO_COMPLETED, false);

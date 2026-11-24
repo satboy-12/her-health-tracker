@@ -399,7 +399,8 @@
 }
 
 .hhj-logo-sweep {
-  animation: hhjLightSweep 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
+  animation: hhjLightSweep 1.5s cubic-bezier(0.22, 1, 0.36, 1) 2.15s both;
 }
 
 /* Official Google Sign-In Material Button Styling */

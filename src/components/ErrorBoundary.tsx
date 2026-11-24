@@ -21,7 +21,7 @@ export class ErrorBoundary extends React.Component<
     try {
       const parsed = JSON.parse(raw) as { error?: string; operationType?: string; path?: string };
       if (parsed && parsed.error) {
-        friendly = `Firestore ${parsed.operationType || 'operation'} failed${
+        friendly = `Database ${parsed.operationType || 'operation'} failed${
           parsed.path ? ` (${parsed.path})` : ''
         }: ${parsed.error}`;
       }

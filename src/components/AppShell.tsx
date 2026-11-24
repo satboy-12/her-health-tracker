@@ -70,8 +70,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               to="/dashboard"
               className="flex items-center gap-2.5 px-2 text-white font-display font-bold leading-[1.15] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C5A66B] rounded-xl"
             >
-              <BrandLogo className="w-9 h-9" />
-              <span className="tracking-tight">
+              <BrandLogo variant="symbol" className="w-9 h-9" surface="dark" />
+              <span className="tracking-tight text-sm leading-tight">
                 Her Health{' '}
                 <br />
                 Journey
@@ -113,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Lock className="w-4 h-4 shrink-0 mt-0.5 text-[#C5A66B]" aria-hidden="true" />
                 <span>
                   {user
-                    ? `Signed in (${user.fullName}). Cloud Firestore active.`
+                    ? `Signed in (${user.fullName}). Realtime Database active.`
                     : 'Firebase Authentication required.'}
                 </span>
               </p>
@@ -137,7 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 to="/dashboard"
                 className="lg:hidden flex items-center gap-2.5 font-display font-bold text-[var(--ink)]"
               >
-                <BrandLogo className="w-8 h-8" />
+                <BrandLogo variant="symbol" className="w-8 h-8" surface="light" />
                 <span>Her Health Journey</span>
               </Link>
 
@@ -189,7 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <p className="break-all">
                         <span className="font-semibold text-[var(--ink)]">Database:</span>{' '}
                         <code className="font-mono text-[var(--plum)]">
-                          Cloud Firestore (Owner-Isolated)
+                          Firebase Realtime Database (Owner-Isolated)
                         </code>
                       </p>
                       <div className="pt-2 border-t border-[var(--line)] flex justify-between items-center">

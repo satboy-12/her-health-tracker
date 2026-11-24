@@ -163,7 +163,7 @@ export function ProfilePage() {
             Profile and settings
           </h1>
           <p className="text-sm text-[var(--muted)] mt-1">
-            Your preferences, appearance, and Firebase Cloud Firestore account controls.
+            Your preferences, appearance, and Firebase Realtime Database account controls.
           </p>
         </div>
 
@@ -200,7 +200,7 @@ export function ProfilePage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="Cloud Firestore · profile"
+        expectedEndpoint="Firebase Realtime Database · profile"
         onRetry={loadProfile}
         retrying={loading}
       />
@@ -221,7 +221,7 @@ export function ProfilePage() {
                   Personal details
                 </h2>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
-                  Updates sync securely with Firebase Cloud Firestore.
+                  Updates sync securely with Firebase Realtime Database.
                 </p>
               </header>
 
@@ -384,7 +384,7 @@ export function ProfilePage() {
                 <div className="bg-[var(--surface2)] rounded-[12px] p-3">
                   <span className="text-[var(--muted)] block">Data Sync</span>
                   <b className="text-sm text-[var(--good)] mt-0.5 block">
-                    Cloud Firestore
+                    Realtime Database
                   </b>
                 </div>
               </div>
@@ -453,7 +453,7 @@ export function ProfilePage() {
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Delete Account & Health Records"
-        description="Are you sure you want to permanently delete your Firebase account and Cloud Firestore health records? This action cannot be undone."
+        description="Are you sure you want to permanently delete your Firebase account and Realtime Database health records? This action cannot be undone."
         confirmLabel="Delete Account"
         destructive
         busy={deleting}

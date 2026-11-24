@@ -1,75 +1,97 @@
 import React, { useState } from 'react';
 
+export type BrandLogoVariant = 'symbol' | 'horizontal' | 'wordmark' | 'full';
+
 interface BrandLogoProps {
+  variant?: BrandLogoVariant;
   className?: string;
   showSweep?: boolean;
   alt?: string;
-  priority?: boolean;
+  surface?: 'dark' | 'light' | 'bare';
 }
 
+const ASSET_MAP: Record<
+  BrandLogoVariant,
+  { src: string; width: number; height: number; aspectClass: string }
+> = {
+  symbol: {
+    src: '/assets/brand/brand-symbol.png',
+    width: 512,
+    height: 512,
+    aspectClass: 'aspect-square',
+  },
+  horizontal: {
+    src: '/assets/brand/brand-horizontal.png',
+    width: 1220,
+    height: 240,
+    aspectClass: 'aspect-[1220/240]',
+  },
+  wordmark: {
+    src: '/assets/brand/brand-wordmark.png',
+    width: 960,
+    height: 212,
+    aspectClass: 'aspect-[960/212]',
+  },
+  full: {
+    src: '/assets/brand/her-health-journey-logo.png',
+    width: 1672,
+    height: 941,
+    aspectClass: 'aspect-[1672/941]',
+  },
+};
+
 /**
- * Official Her Health Journey brand emblem:
- * Features the official high-resolution brand artwork (Emerald silhouette, gold ring, medical cross & pulse, botanical leaves)
- * with graceful fallback to the geometric architectural monogram.
+ * Official Her Health Journey brand asset component.
+ * Renders crisp variant-appropriate assets (circular symbol, horizontal lockup, wordmark, or full emblem)
+ * with explicit dimensions, object-contain proportion lock, and zero clipping or blur.
  */
 export function BrandLogo({
-  className = 'w-9 h-9',
+  variant = 'symbol',
+  className = 'h-10',
   showSweep = false,
-  alt = 'Her Health Journey Logo',
+  alt = 'Her Health Journey Official Logo',
+  surface = 'bare',
 }: BrandLogoProps) {
   const [imageError, setImageError] = useState(false);
+  const asset = ASSET_MAP[variant];
+
+  const surfaceStyles =
+    surface === 'bare'
+      ? 'bg-transparent'
+      : variant === 'symbol'
+      ? surface === 'light'
+        ? 'rounded-full shadow-[0_6px_18px_rgba(9,40,32,0.16)]'
+        : 'rounded-full shadow-[0_4px_14px_rgba(9,40,32,0.28)]'
+      : surface === 'light'
+      ? 'rounded-[12px] px-2 py-1 bg-[#092820] border border-[#C5A66B]/45 shadow-[0_6px_18px_rgba(9,40,32,0.18)]'
+      : 'rounded-[10px] px-1.5 py-0.5 bg-[#092820]/90 border border-[#C5A66B]/30 shadow-[0_4px_14px_rgba(9,40,32,0.25)]';
 
   return (
     <span
-      className={`${className} relative inline-flex items-center justify-center shrink-0 overflow-hidden rounded-[24%] border border-[#C5A66B]/35 shadow-[0_4px_14px_rgba(9,40,32,0.22)] bg-gradient-to-br from-[#174F40] via-[#103C32] to-[#092820]`}
-      aria-hidden="true"
+      className={`${className} ${asset.aspectClass} relative inline-flex items-center justify-center shrink-0 overflow-hidden ${surfaceStyles}`}
     >
       {showSweep && (
         <span
-          className="hhj-logo-sweep pointer-events-none absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#E4D2A5]/70 to-transparent z-20"
+          className="hhj-logo-sweep pointer-events-none absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#E4D2A5]/45 to-transparent z-20"
           aria-hidden="true"
         />
       )}
 
       {!imageError ? (
         <img
-          src="/assets/images/brand-logo.png"
+          src={asset.src}
+          width={asset.width}
+          height={asset.height}
           alt={alt}
-          className="w-full h-full object-contain p-0.5 relative z-10 transition-transform duration-300 hover:scale-105"
+          className="w-full h-full object-contain relative z-10 select-none"
           onError={() => setImageError(true)}
           loading="eager"
+          decoding="async"
         />
       ) : (
-        /* Fallback architectural monogram */
-        <svg
-          viewBox="0 0 36 36"
-          className="w-[74%] h-[74%] relative z-10"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle
-            cx="18"
-            cy="18"
-            r="14.2"
-            stroke="#C5A66B"
-            strokeWidth="1.25"
-            strokeDasharray="68 12"
-            strokeLinecap="round"
-          />
-          <path
-            d="M11.5 10V26M24.5 10V26"
-            stroke="#E4D2A5"
-            strokeWidth="2.8"
-            strokeLinecap="round"
-          />
-          <path
-            d="M11.5 18.2C14.2 16.4 21.8 19.8 24.5 17.8"
-            stroke="#C5A66B"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-          <circle cx="18" cy="18" r="1.5" fill="#E4D2A5" />
-        </svg>
+        <span className="relative z-10 px-2 font-display font-bold text-xs tracking-wider text-[#E4D2A5] uppercase whitespace-nowrap">
+          Her Health Journey
+        </span>
       )}
     </span>
   );

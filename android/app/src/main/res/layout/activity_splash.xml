@@ -18,20 +18,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Skip Intro Button -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSkipIntro"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:layout_marginEnd="20dp"
-        android:text="@string/skip_intro"
-        android:textColor="@color/brand_champagne"
-        android:textSize="13sp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
     <!-- Center Content Layout -->
     <LinearLayout
         android:id="@+id/centerContainer"
@@ -45,11 +31,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Scene 3: Architectural Brand Emblem -->
+        <!-- Scene 3: Official Brand Crest -->
         <ImageView
             android:id="@+id/ivBrandLogo"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
             android:alpha="0"
             android:scaleX="0.75"
             android:scaleY="0.75"

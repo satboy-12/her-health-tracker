@@ -215,13 +215,13 @@ export function PeriodTrackerPage() {
           Period and fertility
         </h1>
         <p className="text-sm text-[var(--muted)] mt-1 max-w-[60ch]">
-          Log start and end dates, review cycle history, and view approximate estimates synced with Cloud Firestore.
+          Log start and end dates, review cycle history, and view approximate estimates synced with Firebase Realtime Database.
         </p>
       </div>
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="Cloud Firestore · periods"
+        expectedEndpoint="Firebase Realtime Database · periods"
         onRetry={loadPeriods}
         retrying={loading}
       />
@@ -490,7 +490,7 @@ export function PeriodTrackerPage() {
                 {editingId ? 'Edit period' : 'Log a period'}
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                {editingId ? 'Updates your saved record in Cloud Firestore.' : 'Saved securely to your Cloud Firestore account.'}
+                {editingId ? 'Updates your saved record in Firebase Realtime Database.' : 'Saved securely to your Firebase Realtime Database account.'}
               </p>
             </header>
 
@@ -624,7 +624,7 @@ export function PeriodTrackerPage() {
             Cycle history
           </h2>
           <p className="text-sm text-[var(--muted)] mt-0.5">
-            Logged menstrual cycles synced with Cloud Firestore.
+            Logged menstrual cycles synced with Firebase Realtime Database.
           </p>
         </header>
 

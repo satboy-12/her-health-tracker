@@ -48,8 +48,8 @@ export function ApiIntegrationBanner({
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
             <span className={isDisconnected ? 'text-[var(--warn)]' : 'text-[var(--bad)]'}>
               {isDisconnected
-                ? 'Cloud Firestore Unavailable'
-                : 'Firestore Sync Error'}
+                ? 'Firebase Realtime Database Unavailable'
+                : 'Database Sync Error'}
             </span>
             {expectedEndpoint && (
               <>
@@ -65,7 +65,7 @@ export function ApiIntegrationBanner({
           <p className="text-[0.9rem] text-[var(--ink)] leading-snug">{message}</p>
           {isDisconnected && (
             <p className="text-xs text-[var(--muted)]">
-              Check your network connection or verify your Firebase Cloud Firestore permissions.
+              Check your network connection or verify your Firebase Realtime Database permissions.
             </p>
           )}
         </div>

@@ -22,8 +22,8 @@ export function NavigationBar({ isAuthenticated = false, activeSection }: Naviga
         to="/"
         className="flex items-center gap-2.5 font-display font-bold text-white leading-[1.1] shrink-0 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C5A66B] rounded-xl"
       >
-        <BrandLogo className="w-8 h-8 sm:w-9 sm:h-9" />
-        <span className="text-[0.92rem] sm:text-base tracking-tight">Her Health Journey</span>
+        <BrandLogo variant="symbol" className="w-9 h-9 sm:w-10 sm:h-10" surface="dark" />
+        <span className="text-[0.95rem] sm:text-base tracking-tight">Her Health Journey</span>
       </Link>
 
       {/* Zone 2: Concise single-line navigation links */}

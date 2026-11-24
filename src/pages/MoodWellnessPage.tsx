@@ -131,7 +131,7 @@ export function MoodWellnessPage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="Cloud Firestore · wellness"
+        expectedEndpoint="Firebase Realtime Database · wellness"
         onRetry={loadWellness}
         retrying={loading}
       />
@@ -145,7 +145,7 @@ export function MoodWellnessPage() {
                 How are you feeling?
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                Syncs directly with Cloud Firestore.
+                Syncs directly with Firebase Realtime Database.
               </p>
             </div>
             <input

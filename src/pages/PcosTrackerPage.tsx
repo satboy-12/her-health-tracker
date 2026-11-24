@@ -197,7 +197,7 @@ export function PcosTrackerPage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="Cloud Firestore · symptoms"
+        expectedEndpoint="Firebase Realtime Database · symptoms"
         onRetry={loadSymptoms}
         retrying={loading}
       />

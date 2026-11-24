@@ -58,10 +58,15 @@ export function LoginPage() {
         <div className="w-full max-w-[460px] flex flex-col gap-5">
           <Link
             to="/"
-            className="inline-flex items-center gap-2.5 font-display font-bold text-[var(--ink)] self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-champagne)] rounded-xl"
+            className="inline-flex items-center gap-3 font-display font-bold text-[var(--ink)] self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-champagne)] rounded-xl"
           >
-            <BrandLogo className="w-9 h-9" />
-            <span>Her Health Journey</span>
+            <BrandLogo variant="symbol" className="w-12 h-12 sm:w-14 sm:h-14" surface="light" />
+            <span className="flex flex-col">
+              <span className="text-base sm:text-lg leading-tight">Her Health Journey</span>
+              <span className="text-[0.65rem] font-semibold tracking-[0.12em] uppercase text-[var(--brand-jade)]">
+                Know Your Body. Own Your Journey.
+              </span>
+            </span>
           </Link>
 
           <div className="hhj-card p-5 sm:p-8 flex flex-col gap-5">

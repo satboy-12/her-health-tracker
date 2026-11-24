@@ -2,6 +2,8 @@ package com.herhealthjourney.android.ui.auth;
 
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.textfield.TextInputEditText;
@@ -26,7 +28,15 @@ public class RegisterActivity extends AppCompatActivity {
         TextInputEditText etFirstName = findViewById(R.id.etRegFirstName);
         TextInputEditText etLastName = findViewById(R.id.etRegLastName);
         TextInputEditText etPassword = findViewById(R.id.etRegPassword);
-        Button btnRegister = findViewById(R.id.btnRegisterSubmit);
+        TextInputEditText etConfirmPassword = findViewById(R.id.etRegConfirmPassword);
+        TextView tvRegError = findViewById(R.id.tvRegError);
+        ProgressBar pbRegLoading = findViewById(R.id.pbRegLoading);
+        Button btnRegister = findViewById(R.id.btnRegister);
+        TextView tvGoToLogin = findViewById(R.id.tvGoToLogin);
+
+        if (tvGoToLogin != null) {
+            tvGoToLogin.setOnClickListener(v -> finish());
+        }
 
         btnRegister.setOnClickListener(v -> {
             String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
@@ -34,9 +44,20 @@ public class RegisterActivity extends AppCompatActivity {
             String firstName = etFirstName.getText() != null ? etFirstName.getText().toString().trim() : "";
             String lastName = etLastName.getText() != null ? etLastName.getText().toString().trim() : "";
             String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
+            String confirmPassword = etConfirmPassword != null && etConfirmPassword.getText() != null
+                ? etConfirmPassword.getText().toString().trim() : "";
+
+            if (tvRegError != null) {
+                tvRegError.setVisibility(android.view.View.GONE);
+            }
 
             if (email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (etConfirmPassword != null && !password.equals(confirmPassword)) {
+                Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -45,12 +66,18 @@ public class RegisterActivity extends AppCompatActivity {
                 fullName = username.isEmpty() ? email.split("@")[0] : username;
             }
 
+            if (pbRegLoading != null) {
+                pbRegLoading.setVisibility(android.view.View.VISIBLE);
+            }
             btnRegister.setEnabled(false);
             btnRegister.setText("Creating account...");
 
             final String finalFullName = fullName;
             FirebaseHelper.getAuth().createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
+                    if (pbRegLoading != null) {
+                        pbRegLoading.setVisibility(android.view.View.GONE);
+                    }
                     btnRegister.setEnabled(true);
                     btnRegister.setText("Register");
 
@@ -74,6 +101,10 @@ public class RegisterActivity extends AppCompatActivity {
                             });
                     } else {
                         String errorMsg = task.getException() != null ? task.getException().getMessage() : "Registration failed.";
+                        if (tvRegError != null) {
+                            tvRegError.setText(errorMsg);
+                            tvRegError.setVisibility(android.view.View.VISIBLE);
+                        }
                         Toast.makeText(RegisterActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                     }
                 });

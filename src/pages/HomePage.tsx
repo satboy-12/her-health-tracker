@@ -178,8 +178,8 @@ export function HomePage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full grid place-items-center p-6 text-center bg-[#103C32]">
-                    <BrandLogo className="w-16 h-16" />
+                  <div className="w-full h-full grid place-items-center p-6 text-center bg-[#092820]">
+                    <BrandLogo variant="full" className="w-56" surface="bare" />
                   </div>
                 )}
 
@@ -266,7 +266,7 @@ export function HomePage() {
                 Your health records belong strictly to you
               </h2>
               <p className="text-[var(--muted)] mt-3 leading-relaxed">
-                Health logs are deeply personal. Sign in with your email and password for strict per-user Firebase Authentication and Cloud Firestore isolation across both web and Android.
+                Health logs are deeply personal. Sign in with your email and password for strict per-user Firebase Authentication and Firebase Realtime Database isolation across both web and Android.
               </p>
               <div className="mt-5">
                 <Link
@@ -286,7 +286,7 @@ export function HomePage() {
                 <div>
                   <b className="text-[var(--ink)]">Verified owner isolation.</b>
                   <p className="text-[var(--muted)] text-sm mt-0.5">
-                    Firebase Authentication and strict Cloud Firestore security rules isolate every record strictly to your account.
+                    Firebase Authentication and strict Firebase Realtime Database security rules isolate every record strictly to your account.
                   </p>
                 </div>
               </li>
@@ -340,7 +340,7 @@ export function HomePage() {
               Ready when you are
             </h2>
             <p className="max-w-[48ch] text-[#B9D2C5] leading-relaxed">
-              Create an account or sign in with email and password to sync your six wellness tracking modules with Cloud Firestore.
+              Create an account or sign in with email and password to sync your six wellness tracking modules with Firebase Realtime Database.
             </p>
             <div className="flex flex-wrap gap-3 pt-1">
               <SecondaryButton
@@ -363,7 +363,19 @@ export function HomePage() {
 
           {/* Footer */}
           <footer className="border-t border-[var(--line)] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--muted)]">
-            <p>&copy; {new Date().getFullYear()} Her Health Journey. All rights reserved.</p>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 font-display font-bold text-[var(--ink)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-champagne)] rounded-lg"
+              >
+                <BrandLogo variant="symbol" className="w-9 h-9" surface="light" />
+                <span>Her Health Journey</span>
+              </Link>
+              <span aria-hidden="true" className="hidden sm:inline text-[var(--border-strong)]">
+                ·
+              </span>
+              <p>&copy; {new Date().getFullYear()} Her Health Journey. All rights reserved.</p>
+            </div>
             <div className="flex flex-wrap items-center gap-5">
               <button
                 type="button"

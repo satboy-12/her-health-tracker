@@ -10,6 +10,15 @@ import {
 import { ref, get, set, update, child } from 'firebase/database';
 import { auth, database } from '../firebase/firebase';
 import type { AuthResponse, AuthUser, LoginPayload, RegisterPayload, UserProfile } from '../types/api';
+import {
+  buildInitialProfileRecord,
+  DEFAULT_CALORIE_TARGET,
+  DEFAULT_WATER_TARGET_ML,
+  mapRtdbProfileToUserProfile,
+} from './profileBuilder';
+import { wrapRtdbError } from './rtdbErrors';
+
+export { buildInitialProfileRecord, mapRtdbProfileToUserProfile };
 
 export function getFirebaseErrorMessage(codeOrMessage: string): string {
   if (codeOrMessage.includes('auth/email-already-in-use')) {
@@ -30,10 +39,73 @@ export function getFirebaseErrorMessage(codeOrMessage: string): string {
   if (codeOrMessage.includes('auth/too-many-requests')) {
     return 'Too many unsuccessful attempts. Access temporarily blocked for security. Please try again later or reset password.';
   }
+  if (codeOrMessage.includes('auth/operation-not-allowed')) {
+    return 'Email/Password sign-in is not yet enabled in Firebase Console (Authentication → Sign-in method → Email/Password).';
+  }
   if (codeOrMessage.includes('auth/network-request-failed')) {
     return 'Network connection error. Please verify your internet connection.';
   }
   return codeOrMessage;
+}
+
+/**
+ * Ensures `users/{uid}/profile` exists in Firebase Realtime Database for the authenticated user.
+ * Never overwrites existing profile data or touches any other UID.
+ */
+export async function ensureUserAccountAndProfile(
+  fbUser: FirebaseUser,
+  preferredFullName?: string,
+): Promise<UserProfile> {
+  const uid = fbUser.uid;
+  const profileRef = ref(database, `users/${uid}/profile`);
+  try {
+    const snap = await get(profileRef);
+    const nowIso = new Date().toISOString();
+
+    if (!snap.exists()) {
+      const initialRecord = buildInitialProfileRecord(fbUser, preferredFullName, nowIso);
+      await set(profileRef, initialRecord);
+      return mapRtdbProfileToUserProfile(uid, initialRecord, fbUser);
+    }
+
+    const existing = snap.val() as Record<string, unknown>;
+    const patch: Record<string, unknown> = {};
+    if (!existing.fullName || typeof existing.fullName !== 'string' || !existing.fullName.trim()) {
+      patch.fullName =
+        preferredFullName?.trim() ||
+        fbUser.displayName?.trim() ||
+        fbUser.email?.split('@')[0] ||
+        'Member';
+    }
+    if (!existing.email && fbUser.email) {
+      patch.email = fbUser.email.slice(0, 254);
+    }
+    if (!existing.preferences || typeof existing.preferences !== 'object') {
+      patch.preferences = {
+        cycleReminders: true,
+        medicationAlerts: true,
+        hydrationNudges: true,
+        dailyCalorieTarget: DEFAULT_CALORIE_TARGET,
+        dailyWaterTargetMl: DEFAULT_WATER_TARGET_ML,
+      };
+    }
+
+    if (Object.keys(patch).length > 0) {
+      patch.updatedAt = nowIso;
+      await update(profileRef, patch);
+      return mapRtdbProfileToUserProfile(uid, { ...existing, ...patch }, fbUser);
+    }
+
+    return mapRtdbProfileToUserProfile(uid, existing, fbUser);
+  } catch (err) {
+    throw wrapRtdbError(
+      err,
+      'Firebase Realtime Database · profile',
+      'POST',
+      'Failed to load or initialize your user profile.',
+      uid,
+    );
+  }
 }
 
 export function mapFirebaseUserToAuthUser(fbUser: FirebaseUser, profileData?: Partial<UserProfile>): AuthUser {
@@ -52,31 +124,11 @@ export const authService = {
     const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
     const user = cred.user;
 
-    // Update Firebase Auth display name
     await updateProfile(user, { displayName: fullName.trim() });
-
-    // Store user profile in Realtime Database under users/{uid}/profile
-    const nowIso = new Date().toISOString();
-    const userProfileRef = ref(database, `users/${user.uid}/profile`);
-    await set(userProfileRef, {
-      fullName: fullName.trim(),
-      email: email.trim(),
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      profileImage: null,
-      accountTier: 'Firebase Cloud',
-      memberSince: nowIso.slice(0, 10),
-    });
+    const profile = await ensureUserAccountAndProfile(user, fullName.trim());
 
     const token = await user.getIdToken();
-    const authUser: AuthUser = {
-      id: user.uid,
-      fullName: fullName.trim(),
-      email: email.trim(),
-      memberSince: nowIso.slice(0, 10),
-      accountTier: 'Firebase Cloud',
-    };
-
+    const authUser = mapFirebaseUserToAuthUser(user, profile);
     return { token, tokenType: 'Bearer', user: authUser };
   },
 
@@ -85,19 +137,9 @@ export const authService = {
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
     const user = cred.user;
 
-    // Fetch profile data from Realtime Database
-    let profileData: Partial<UserProfile> | undefined;
-    try {
-      const snap = await get(child(ref(database), `users/${user.uid}/profile`));
-      if (snap.exists()) {
-        profileData = snap.val();
-      }
-    } catch (e) {
-      console.warn('Could not read user profile from Realtime Database:', e);
-    }
-
+    const profile = await ensureUserAccountAndProfile(user);
     const token = await user.getIdToken();
-    const authUser = mapFirebaseUserToAuthUser(user, profileData);
+    const authUser = mapFirebaseUserToAuthUser(user, profile);
 
     return { token, tokenType: 'Bearer', user: authUser };
   },
@@ -119,24 +161,20 @@ export const authService = {
   },
 
   async getUserProfile(uid: string): Promise<UserProfile | null> {
-    const snap = await get(child(ref(database), `users/${uid}/profile`));
-    if (snap.exists()) {
-      const data = snap.val();
-      return {
-        id: uid,
-        fullName: data.fullName || '',
-        email: data.email || '',
-        dateOfBirth: data.dateOfBirth || '',
-        phoneNumber: data.phoneNumber || '',
-        memberSince: data.memberSince || '',
-        accountTier: data.accountTier || 'Firebase Cloud',
-        preferences: data.preferences || {
-          cycleReminders: true,
-          medicationAlerts: true,
-          hydrationNudges: true,
-        },
-      };
+    try {
+      const snap = await get(child(ref(database), `users/${uid}/profile`));
+      if (snap.exists()) {
+        return mapRtdbProfileToUserProfile(uid, snap.val() as Record<string, unknown>);
+      }
+      return null;
+    } catch (err) {
+      throw wrapRtdbError(
+        err,
+        'Firebase Realtime Database · profile',
+        'GET',
+        'Failed to read user profile.',
+        uid,
+      );
     }
-    return null;
   },
 };

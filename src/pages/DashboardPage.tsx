@@ -12,6 +12,7 @@ import {
   Utensils,
 } from 'lucide-react';
 import { AppShell } from '../components/AppShell';
+import { BrandLogo } from '../components/BrandLogo';
 import { CycleWheel } from '../components/CycleWheel';
 import { DashboardCard } from '../components/DashboardCard';
 import { EmptyState } from '../components/EmptyState';
@@ -30,7 +31,7 @@ import type { DashboardSummary } from '../types/api';
 import { PHASE_META, formatShortDate } from '../utils/uiHelpers';
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  const { user, authReady, isAuthenticated, emailVerified } = useAuth();
   const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,8 +53,9 @@ export function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    if (!authReady || !isAuthenticated || !emailVerified) return;
     void loadDashboard();
-  }, [loadDashboard]);
+  }, [authReady, isAuthenticated, emailVerified, loadDashboard]);
 
   const handleQuickWater = async (amountMl: number) => {
     const today = new Date().toISOString().slice(0, 10);
@@ -65,7 +67,7 @@ export function DashboardPage() {
       setToast({
         message:
           err instanceof ApiError
-            ? `Cannot log water (${err.endpoint}): Backend not connected.`
+            ? err.message
             : 'Failed to log water intake.',
         variant: 'error',
       });
@@ -200,7 +202,7 @@ export function DashboardPage() {
 
       <ErrorState
         error={apiError}
-        expectedEndpoint="Cloud Firestore · dashboard"
+        expectedEndpoint="Firebase Realtime Database · dashboard"
         onRetry={loadDashboard}
         retrying={loading}
       />
@@ -213,9 +215,12 @@ export function DashboardPage() {
           <div className="relative overflow-hidden rounded-[18px] border border-[var(--border-primary)] shadow-sm bg-gradient-to-r from-[#103C32] via-[#174F40] to-[#092820] text-white">
             <div className="flex flex-col md:flex-row items-center justify-between">
               <div className="p-6 md:p-8 flex-1 z-10">
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#C5A66B]/25 text-[#E4D2A5] border border-[#C5A66B]/40 mb-3">
-                  {todayFormatted}
-                </span>
+                <div className="flex flex-wrap items-center gap-3 mb-3">
+                  <BrandLogo variant="symbol" className="w-10 h-10" surface="dark" />
+                  <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#C5A66B]/25 text-[#E4D2A5] border border-[#C5A66B]/40">
+                    {todayFormatted}
+                  </span>
+                </div>
                 <h2 className="font-display font-bold text-2xl md:text-3xl text-[#F8F5EB] leading-snug">
                   {heading}
                 </h2>
@@ -597,7 +602,7 @@ export function DashboardPage() {
 
             <DashboardCard
               title="Insights"
-              subtitle="Derived directly from your Cloud Firestore records"
+              subtitle="Derived directly from your Firebase Realtime Database records"
               accentColor="var(--brand-champagne)"
             >
               {derivedInsights.length > 0 ? (
