@@ -141,32 +141,20 @@ export function HealthJournalPage() {
 
   return (
     <AppShell>
-      {/* Editorial Header Banner with Artwork */}
-      <div className="relative overflow-hidden rounded-[18px] border border-[var(--border-primary)] bg-gradient-to-r from-[#103C32] via-[#174F40] to-[#092820] text-white p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex-1">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#D4B98A]/25 text-[#E4D2A5] border border-[#D4B98A]/40 mb-2">
-            Reflective Sanctuary
-          </span>
-          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[#F8F5EB]">
-            Health Journal &amp; Private Notes
-          </h1>
-          <p className="text-[#B9D2C5] text-sm mt-1.5 max-w-[55ch] leading-relaxed">
-            Record personal observations, physical symptoms, and doctor consultation notes with full cryptographic privacy and keyword search.
-          </p>
-        </div>
-        <div className="w-full md:w-[220px] h-[130px] rounded-[14px] overflow-hidden shrink-0 border border-[#D4B98A]/30 shadow-md bg-[#F8F5EB]">
-          <img
-            src="/assets/images/health_journal.svg"
-            alt="Artisanal deep emerald linen bound private health journal with gold embossed emblem"
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        </div>
+      {/* Pagehead */}
+      <div>
+        <p className="hhj-eyebrow">Private notes</p>
+        <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
+          Health journal
+        </h1>
+        <p className="text-sm text-[var(--muted)] mt-1 max-w-[60ch]">
+          Symptoms, reflections, and questions for your care team—synced securely with Cloud Firestore.
+        </p>
       </div>
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="GET /api/journal"
+        expectedEndpoint="Cloud Firestore · journal"
         onRetry={loadEntries}
         retrying={loading}
       />
@@ -181,8 +169,8 @@ export function HealthJournalPage() {
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
                 {editingId
-                  ? 'Changes replace the saved entry via PUT /api/journal/:id.'
-                  : 'Persists directly via POST /api/journal.'}
+                  ? 'Changes update your saved entry in Cloud Firestore.'
+                  : 'Persists directly to your Cloud Firestore journal.'}
               </p>
             </header>
 
@@ -352,10 +340,9 @@ export function HealthJournalPage() {
               title={entries.length === 0 ? 'No entries yet' : 'No matching entries'}
               description={
                 entries.length === 0
-                  ? 'Entries loaded from GET /api/journal will appear here.'
+                  ? 'Entries saved to Cloud Firestore will appear here.'
                   : 'Try adjusting your search or tag filter.'
               }
-              endpoint={entries.length === 0 ? 'GET /api/journal' : undefined}
             />
           ) : (
             <div className="divide-y divide-[var(--line)]">

@@ -20,7 +20,7 @@ const THEME_OPTIONS: Array<{ value: ThemeChoice; label: string }> = [
 ];
 
 export function ProfilePage() {
-  const { user, authProvider, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -163,7 +163,7 @@ export function ProfilePage() {
             Profile and settings
           </h1>
           <p className="text-sm text-[var(--muted)] mt-1">
-            Your preferences, appearance, and Spring Boot account controls.
+            Your preferences, appearance, and Firebase Cloud Firestore account controls.
           </p>
         </div>
 
@@ -200,7 +200,7 @@ export function ProfilePage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="GET /api/profile"
+        expectedEndpoint="Cloud Firestore · profile"
         onRetry={loadProfile}
         retrying={loading}
       />
@@ -221,7 +221,7 @@ export function ProfilePage() {
                   Personal details
                 </h2>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
-                  Updates sync directly via PUT /api/profile.
+                  Updates sync securely with Firebase Cloud Firestore.
                 </p>
               </header>
 
@@ -368,7 +368,7 @@ export function ProfilePage() {
                     {fullName || 'Account Not Loaded'}
                   </h2>
                   <p className="text-sm text-[var(--muted)]">
-                    {email || 'Signed in via Spring Boot'}
+                    {email || 'Signed in with Email & Password'}
                   </p>
                 </div>
                 <ShieldCheck className="w-6 h-6 text-[var(--good)] shrink-0" aria-hidden="true" />
@@ -384,7 +384,7 @@ export function ProfilePage() {
                 <div className="bg-[var(--surface2)] rounded-[12px] p-3">
                   <span className="text-[var(--muted)] block">Data Sync</span>
                   <b className="text-sm text-[var(--good)] mt-0.5 block">
-                    Spring Boot API
+                    Cloud Firestore
                   </b>
                 </div>
               </div>
@@ -427,7 +427,7 @@ export function ProfilePage() {
                   Session control
                 </h2>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
-                  Sign out of your active session on this device.
+                  Sign out of your Firebase session on this device.
                 </p>
               </div>
               <button
@@ -453,7 +453,7 @@ export function ProfilePage() {
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Delete Account & Health Records"
-        description="Are you sure you want to permanently delete your account and all associated health records? This action cannot be undone."
+        description="Are you sure you want to permanently delete your Firebase account and Cloud Firestore health records? This action cannot be undone."
         confirmLabel="Delete Account"
         destructive
         busy={deleting}

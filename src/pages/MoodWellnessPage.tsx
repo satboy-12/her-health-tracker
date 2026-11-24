@@ -131,7 +131,7 @@ export function MoodWellnessPage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="GET /api/wellness"
+        expectedEndpoint="Cloud Firestore · wellness"
         onRetry={loadWellness}
         retrying={loading}
       />
@@ -145,7 +145,7 @@ export function MoodWellnessPage() {
                 How are you feeling?
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                Syncs directly with POST /api/wellness.
+                Syncs directly with Cloud Firestore.
               </p>
             </div>
             <input
@@ -310,7 +310,6 @@ export function MoodWellnessPage() {
               <EmptyStateCard
                 title="No wellness history yet"
                 description="Save mood and sleep check-ins to render your weekly rhythm strip."
-                endpoint="GET /api/wellness"
               />
             )}
 
@@ -336,7 +335,7 @@ export function MoodWellnessPage() {
                 Patterns
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                Built from your /api/wellness history
+                Built from your wellness history
               </p>
             </header>
 

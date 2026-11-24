@@ -197,7 +197,7 @@ export function PcosTrackerPage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="GET /api/symptoms"
+        expectedEndpoint="Cloud Firestore · symptoms"
         onRetry={loadSymptoms}
         retrying={loading}
       />
@@ -352,7 +352,7 @@ export function PcosTrackerPage() {
                   Severity trend
                 </h2>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
-                  Each dot is a logged entry from /api/symptoms.
+                  Each dot is a logged entry from your history.
                 </p>
               </div>
               {chartData && (
@@ -437,8 +437,7 @@ export function PcosTrackerPage() {
             ) : (
               <EmptyStateCard
                 title="Log at least two days to see a trend"
-                description="Your 1-5 severity line chart plots strictly from GET /api/symptoms."
-                endpoint="GET /api/symptoms"
+                description="Your 1-5 severity line chart plots from your saved symptom entries."
               />
             )}
           </section>

@@ -162,7 +162,7 @@ export function PeriodTrackerPage() {
       const msg =
         err instanceof ApiError
           ? err.message
-          : 'Unable to save period entry. Verify Spring Boot backend connection.';
+          : 'Unable to save period entry. Please check your connection and try again.';
       setFormError(msg);
       setToast({ message: msg, variant: 'error' });
     } finally {
@@ -208,32 +208,20 @@ export function PeriodTrackerPage() {
 
   return (
     <AppShell>
-      {/* Editorial Header Banner with Artwork */}
-      <div className="relative overflow-hidden rounded-[18px] border border-[var(--border-primary)] bg-gradient-to-r from-[#103C32] via-[#174F40] to-[#092820] text-white p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex-1">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#C5A66B]/25 text-[#E4D2A5] border border-[#C5A66B]/40 mb-2">
-            Rhythm &amp; Ovulation
-          </span>
-          <h1 className="font-display font-bold text-2xl sm:text-3xl text-[#F8F5EB]">
-            Period &amp; Cycle Intelligence
-          </h1>
-          <p className="text-[#B9D2C5] text-sm mt-1.5 max-w-[55ch] leading-relaxed">
-            Record menstruation dates, monitor phase transitions, and discover natural hormonal patterns synced with your private clinical records.
-          </p>
-        </div>
-        <div className="w-full md:w-[220px] h-[130px] rounded-[14px] overflow-hidden shrink-0 border border-[#C5A66B]/30 shadow-md">
-          <img
-            src="/assets/images/period_tracker.jpg"
-            alt="Botanical blooming peony and crescent moon fine-art illustration"
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        </div>
+      {/* Pagehead */}
+      <div>
+        <p className="hhj-eyebrow">Cycle intelligence</p>
+        <h1 className="font-display font-bold text-[clamp(1.9rem,4vw,2.5rem)] text-[var(--ink)] mt-1">
+          Period and fertility
+        </h1>
+        <p className="text-sm text-[var(--muted)] mt-1 max-w-[60ch]">
+          Log start and end dates, review cycle history, and view approximate estimates synced with Cloud Firestore.
+        </p>
       </div>
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint="GET /api/periods"
+        expectedEndpoint="Cloud Firestore · periods"
         onRetry={loadPeriods}
         retrying={loading}
       />
@@ -502,10 +490,7 @@ export function PeriodTrackerPage() {
                 {editingId ? 'Edit period' : 'Log a period'}
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                Saved directly to{' '}
-                <code className="font-mono">
-                  {editingId ? 'PUT /api/periods/:id' : 'POST /api/periods'}
-                </code>
+                {editingId ? 'Updates your saved record in Cloud Firestore.' : 'Saved securely to your Cloud Firestore account.'}
               </p>
             </header>
 
@@ -639,7 +624,7 @@ export function PeriodTrackerPage() {
             Cycle history
           </h2>
           <p className="text-sm text-[var(--muted)] mt-0.5">
-            Logged menstrual cycles synced with your Spring Boot API.
+            Logged menstrual cycles synced with Cloud Firestore.
           </p>
         </header>
 
@@ -648,8 +633,7 @@ export function PeriodTrackerPage() {
         ) : periods.length === 0 ? (
           <EmptyStateCard
             title="No periods logged yet"
-            description="Logged period start and end dates from GET /api/periods will appear here."
-            endpoint="GET /api/periods"
+            description="Logged period start and end dates will appear here."
           />
         ) : (
           <div className="overflow-x-auto">

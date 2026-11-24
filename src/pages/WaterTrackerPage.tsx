@@ -142,7 +142,7 @@ export function WaterTrackerPage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint={`GET /api/water?date=${todayIso}`}
+        expectedEndpoint={`Cloud Firestore · water (${todayIso})`}
         onRetry={loadWater}
         retrying={loading}
       />
@@ -161,7 +161,7 @@ export function WaterTrackerPage() {
                     ? glassesLeft === 0
                       ? 'Goal reached. Nice work.'
                       : `${glassesLeft} ${glassesLeft === 1 ? 'glass' : 'glasses'} (250 ml) to go`
-                    : 'Awaiting target from GET /api/water'}
+                    : 'Loading your daily hydration target'}
                 </p>
               </div>
               <Droplets className="w-5 h-5 text-[var(--plum)]" aria-hidden="true" />
@@ -328,8 +328,7 @@ export function WaterTrackerPage() {
               ) : (
                 <EmptyStateCard
                   title="No historical hydration records"
-                  description="Log water intake with your Spring Boot backend to populate your 7-day chart."
-                  endpoint="GET /api/water"
+                  description="Log water intake to populate your 7-day hydration chart."
                 />
               )}
             </section>
@@ -341,7 +340,7 @@ export function WaterTrackerPage() {
                   <h2 className="font-display font-bold text-base text-[var(--ink)]">
                     Daily water goal
                   </h2>
-                  <p className="text-xs text-[var(--muted)]">Update target via PUT /api/water</p>
+                  <p className="text-xs text-[var(--muted)]">Syncs directly with Cloud Firestore</p>
                 </div>
                 <form onSubmit={handleUpdateTarget} className="flex items-center gap-2">
                   <input

@@ -30,7 +30,7 @@ export function EmptyState({
         <h3 className="font-display text-base font-bold text-[var(--ink)]">{title}</h3>
         <p className="text-sm text-[var(--muted)]">{description}</p>
         {endpoint && (
-          <p className="text-xs text-[var(--muted)] font-mono pt-0.5">Awaiting API · {endpoint}</p>
+          <p className="text-xs text-[var(--muted)] font-mono pt-0.5">{endpoint}</p>
         )}
       </div>
       {actionLabel && onAction && (

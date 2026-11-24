@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { BrandLogo } from '../components/BrandLogo';
 import { ErrorState } from '../components/ErrorState';
 import { FormInput } from '../components/FormInput';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
-import { getFirebaseErrorMessage } from '../services/authService';
 import { validateEmail, validatePassword } from '../utils/validation';
 
 export function LoginPage() {
-  const { login, sendPasswordReset } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo =
@@ -20,22 +19,19 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [resetEmailSent, setResetEmailSent] = useState(false);
-  const [resetSubmitting, setResetSubmitting] = useState(false);
 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextEmailErr = validateEmail(email);
-    const nextPassErr = validatePassword(password, 6);
+    const nextPassErr = validatePassword(password, 8);
     setEmailError(nextEmailErr);
     setPasswordError(nextPassErr);
-    setApiError(null);
+    setAuthError(null);
 
     if (nextEmailErr || nextPassErr) {
       return;
@@ -45,72 +41,42 @@ export function LoginPage() {
     try {
       await login({ email: email.trim(), password, rememberMe });
       navigate(redirectTo, { replace: true });
-    } catch (err: any) {
-      const msg = getFirebaseErrorMessage(err?.code || err?.message || String(err));
-      setApiError(msg);
+    } catch (err) {
+      setAuthError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to complete sign in. Please check your credentials.',
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handlePasswordReset = async () => {
-    const err = validateEmail(email);
-    if (err) {
-      setEmailError('Enter your valid email above to receive a password reset link.');
-      return;
-    }
-    setResetSubmitting(true);
-    setApiError(null);
-    try {
-      await sendPasswordReset(email.trim());
-      setResetEmailSent(true);
-    } catch (err: any) {
-      const msg = getFirebaseErrorMessage(err?.code || err?.message || String(err));
-      setApiError(msg);
-    } finally {
-      setResetSubmitting(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center py-8 sm:py-12 relative overflow-hidden">
-      {/* Subtle emerald silk ambient background */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-15"
-        style={{
-          backgroundImage: 'radial-gradient(ellipse at 50% 15%, rgba(39, 131, 106, 0.4) 0%, transparent 65%)',
-        }}
-        aria-hidden="true"
-      />
-
-      <div className="page-container flex flex-col items-center relative z-10">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] flex flex-col items-center justify-center py-8 sm:py-12">
+      <div className="page-container flex flex-col items-center">
         <div className="w-full max-w-[460px] flex flex-col gap-5">
           <Link
             to="/"
-            className="inline-flex items-center gap-3 font-display font-bold text-lg text-[var(--ink)] self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-champagne)] rounded-xl"
+            className="inline-flex items-center gap-2.5 font-display font-bold text-[var(--ink)] self-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-champagne)] rounded-xl"
           >
-            <BrandLogo className="w-11 h-11" />
-            <div className="flex flex-col">
-              <span className="leading-tight">Her Health Journey</span>
-              <span className="text-[0.65rem] tracking-wider font-semibold text-[var(--brand-jade)] uppercase">
-                Know Your Body. Own Your Journey.
-              </span>
-            </div>
+            <BrandLogo className="w-9 h-9" />
+            <span>Her Health Journey</span>
           </Link>
 
-          <div className="hhj-card p-6 sm:p-8 flex flex-col gap-5 border border-[var(--border-primary)] shadow-[var(--shadow-card)]">
+          <div className="hhj-card p-5 sm:p-8 flex flex-col gap-5">
             <div>
-              <p className="hhj-eyebrow">Welcome Back</p>
+              <p className="hhj-eyebrow">Welcome back</p>
               <h1 className="font-display font-bold text-2xl sm:text-[1.75rem] text-[var(--ink)] mt-1">
-                Sign In to Your Journal
+                Sign in to your journal
               </h1>
               <p className="text-sm text-[var(--muted)] mt-1">
-                Enter your registered email and password to access your private wellness data.
+                Sign in with your email and password to access your private Firebase health records.
               </p>
             </div>
 
-            {apiError && (
-              <ErrorState error={apiError} expectedEndpoint="Firebase Auth" />
+            {authError && (
+              <ErrorState error={authError} expectedEndpoint="Firebase Authentication" />
             )}
 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
@@ -129,103 +95,55 @@ export function LoginPage() {
                 error={emailError}
               />
 
-              <div className="flex flex-col gap-1">
-                <FormInput
-                  id="login-password"
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (passwordError) setPasswordError(null);
-                  }}
-                  placeholder="Enter your password"
-                  icon={<Lock className="w-4 h-4" aria-hidden="true" />}
-                  error={passwordError}
-                  trailing={
-                    <button
-                      type="button"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className="p-1 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" aria-hidden="true" />
-                      ) : (
-                        <Eye className="w-4 h-4" aria-hidden="true" />
-                      )}
-                    </button>
-                  }
+              <FormInput
+                id="login-password"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError(null);
+                }}
+                placeholder="Enter your password"
+                icon={<Lock className="w-4 h-4" aria-hidden="true" />}
+                error={passwordError}
+                trailing={
+                  <button
+                    type="button"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="p-1 text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="w-4 h-4" aria-hidden="true" />
+                    )}
+                  </button>
+                }
+              />
+
+              <label className="flex items-center gap-2 text-xs text-[var(--muted)] cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded accent-[var(--plum)] cursor-pointer"
                 />
+                <span>Keep me signed in on this device</span>
+              </label>
 
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <label className="flex items-center gap-2 text-[var(--muted)] cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded accent-[var(--brand-emerald)] cursor-pointer"
-                    />
-                    <span>Remember me</span>
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotPasswordOpen(true);
-                      setResetEmailSent(false);
-                    }}
-                    className="font-semibold text-[var(--brand-emerald)] hover:underline cursor-pointer"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-              </div>
-
-              {forgotPasswordOpen && (
-                <div className="p-3.5 rounded-[12px] bg-[var(--surface-secondary)] border border-[var(--border-strong)] text-xs text-[var(--text-secondary)] flex flex-col gap-2">
-                  <strong className="text-[var(--text-primary)]">Password Reset Assistance</strong>
-                  {resetEmailSent ? (
-                    <div className="flex items-center gap-2 text-[var(--brand-emerald)] font-semibold">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Password reset email dispatched to {email}. Check your inbox!</span>
-                    </div>
-                  ) : (
-                    <>
-                      <p>
-                        We will send a secure password reset link to your registered email address.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handlePasswordReset}
-                        disabled={resetSubmitting}
-                        className="self-start px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-emerald)] text-white hover:opacity-90 cursor-pointer disabled:opacity-50"
-                      >
-                        {resetSubmitting ? 'Sending...' : 'Send Password Reset Email'}
-                      </button>
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setForgotPasswordOpen(false)}
-                    className="self-end font-semibold text-[var(--brand-jade)] hover:underline pt-1 cursor-pointer"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-
-              <PrimaryButton type="submit" disabled={submitting} className="w-full mt-2">
+              <PrimaryButton type="submit" disabled={submitting} className="w-full">
                 <span>{submitting ? 'Signing in...' : 'Sign In'}</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </PrimaryButton>
             </form>
 
-            <div className="pt-4 border-t border-[var(--border-primary)] text-center">
+            <div className="pt-4 border-t border-[var(--line)] text-center">
               <p className="text-xs text-[var(--muted)]">
                 Don&apos;t have an account?{' '}
-                <Link to="/register" className="text-[var(--brand-emerald)] font-bold hover:underline">
+                <Link to="/register" className="text-[var(--plum)] font-bold hover:underline">
                   Create account
                 </Link>
               </p>

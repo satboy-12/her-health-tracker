@@ -8,8 +8,8 @@ import {
   CalendarDays,
   Check,
   Droplets,
-  FileSpreadsheet,
   RotateCcw,
+  ShieldCheck,
   Smile,
   Utensils,
 } from 'lucide-react';
@@ -21,6 +21,11 @@ import { NavigationBar } from '../components/NavigationBar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { SecondaryButton } from '../components/SecondaryButton';
 import { useAuth } from '../context/AuthContext';
+import {
+  clearIntroCompleted,
+  markIntroCompleted,
+  shouldShowCinematicIntro,
+} from '../utils/introStorage';
 
 const TRACKERS = [
   {
@@ -96,36 +101,32 @@ export function HomePage() {
     return params.get('autostart') === '1';
   }, [location.search]);
 
-  // The website must display its cinematic opening EVERY TIME a visitor opens or reloads
-  // No sessionStorage, localStorage, cookies or first-visit flags suppressing it
   const [showIntro, setShowIntro] = useState<boolean>(() => {
-    if (autostartBypass) return false;
-    return true;
+    if (typeof window === 'undefined') return false;
+    return shouldShowCinematicIntro({ autostartBypass });
   });
 
   const [heroImageFailed, setHeroImageFailed] = useState(false);
 
   const handleIntroComplete = useCallback(() => {
+    markIntroCompleted();
     setShowIntro(false);
-    // After cinematic opening:
-    // - Logged-in users proceed to their authenticated dashboard
-    // - Logged-out users remain on public landing page
-    if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+  }, []);
 
   const handleReplayIntro = () => {
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+    if (typeof window !== 'undefined') {
+      clearIntroCompleted();
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+    }
     setShowIntro(true);
   };
 
   const handleExploreModule = (path: string) => {
     if (isAuthenticated) {
       navigate(path);
-    } else {
-      navigate('/login', { state: { from: { pathname: path } } });
+      return;
     }
+    navigate('/login', { state: { from: { pathname: path } } });
   };
 
   return (
@@ -150,22 +151,18 @@ export function HomePage() {
                 <em className="not-italic hhj-grad-text">deserves precision and care.</em>
               </h1>
               <p className="text-[1.04rem] sm:text-[1.1rem] text-[var(--muted)] max-w-[48ch] mt-[18px] mb-[26px] leading-relaxed">
-                Understand your cycle, log PCOS patterns, balance mood, nutrition, hydration, and private notes—all grounded cleanly in your personal health records.
+                Understand your cycle, log PCOS patterns, balance mood, nutrition, hydration, and private notes—all grounded cleanly in your personal Firebase health vault.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <PrimaryButton to={isAuthenticated ? '/dashboard' : '/register'}>
-                  <span>Begin Your Journey</span>
+                  <span>{isAuthenticated ? 'Open Dashboard' : 'Begin Your Journey'}</span>
                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </PrimaryButton>
-                <SecondaryButton to="/login" variant="outline">
-                  Sign In
-                </SecondaryButton>
-                <a
-                  href="#trackers"
-                  className="inline-flex items-center justify-center min-h-[42px] px-3 py-2 text-sm font-semibold text-[var(--brand-emerald)] hover:underline cursor-pointer whitespace-nowrap"
-                >
-                  Explore Features
-                </a>
+                {!isAuthenticated && (
+                  <SecondaryButton to="/login" variant="outline">
+                    Sign In
+                  </SecondaryButton>
+                )}
               </div>
             </div>
 
@@ -174,10 +171,9 @@ export function HomePage() {
               <div className="relative overflow-hidden rounded-[14px] aspect-[4/3] bg-[var(--surface2)]">
                 {!heroImageFailed ? (
                   <img
-                    src="/assets/images/hero_wellness.jpg"
-                    alt="Editorial luxury wellness sanctuary with woman in mindful tranquility surrounded by lush emerald greenery"
-                    loading="eager"
-                    decoding="async"
+                    src="/src/assets/images/wellness_hero_editorial_1795442267179.jpg"
+                    alt="Warm linen wellness journal beside herbal tea and botanical petals on sunlit stone"
+                    referrerPolicy="no-referrer"
                     onError={() => setHeroImageFailed(true)}
                     className="w-full h-full object-cover"
                   />
@@ -207,7 +203,7 @@ export function HomePage() {
                       Pattern Clarity
                     </p>
                     <p className="text-[0.72rem] text-[var(--muted)] leading-snug mt-0.5">
-                      Synced to Spring Boot, Firestore &amp; Google Sheets.
+                      Synced across Web &amp; Android via Firebase.
                     </p>
                   </div>
                 </div>
@@ -232,7 +228,7 @@ export function HomePage() {
                     Luteal
                   </span>
                 </div>
-                <span>Real API-driven tracking</span>
+                <span>Real Firebase-backed tracking</span>
               </div>
             </div>
           </section>
@@ -262,7 +258,7 @@ export function HomePage() {
             </div>
           </section>
 
-          {/* Privacy & Google Sheets Sync */}
+          {/* Privacy & Ownership */}
           <section id="privacy" className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
             <div>
               <p className="hhj-eyebrow">Privacy &amp; Ownership</p>
@@ -270,18 +266,17 @@ export function HomePage() {
                 Your health records belong strictly to you
               </h2>
               <p className="text-[var(--muted)] mt-3 leading-relaxed">
-                Health logs are deeply personal. Sign in with Google for strict per-user Cloud Firestore isolation and Google Sheets workbook sync, or connect your Spring Boot REST backend (<code className="font-mono text-xs text-[var(--plum)]">VITE_API_BASE_URL</code>).
+                Health logs are deeply personal. Sign in with your email and password for strict per-user Firebase Authentication and Cloud Firestore isolation across both web and Android.
               </p>
               <div className="mt-5">
-                <button
-                  type="button"
-                  onClick={() => handleExploreModule('/sheets')}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--plum)] hover:underline cursor-pointer"
+                <Link
+                  to={isAuthenticated ? '/dashboard' : '/login'}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--plum)] hover:underline"
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-[var(--brand-jade)]" aria-hidden="true" />
-                  <span>Explore Google Sheets Workbook Sync</span>
+                  <ShieldCheck className="w-4 h-4 text-[var(--brand-jade)]" aria-hidden="true" />
+                  <span>{isAuthenticated ? 'Go to Dashboard' : 'Sign in to access your records'}</span>
                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -291,7 +286,7 @@ export function HomePage() {
                 <div>
                   <b className="text-[var(--ink)]">Verified owner isolation.</b>
                   <p className="text-[var(--muted)] text-sm mt-0.5">
-                    Firestore rules and Spring Boot API tokens isolate your records strictly to your authenticated identity.
+                    Firebase Authentication and strict Cloud Firestore security rules isolate every record strictly to your account.
                   </p>
                 </div>
               </li>
@@ -309,7 +304,7 @@ export function HomePage() {
                 <div>
                   <b className="text-[var(--ink)]">Export or delete any time.</b>
                   <p className="text-[var(--muted)] text-sm mt-0.5">
-                    Download your profile record as JSON, sync to Sheets, or delete your account from Profile settings.
+                    Download your profile record as JSON or permanently delete your account from Profile settings.
                   </p>
                 </div>
               </li>
@@ -345,22 +340,24 @@ export function HomePage() {
               Ready when you are
             </h2>
             <p className="max-w-[48ch] text-[#B9D2C5] leading-relaxed">
-              Create an account or sign in to sync your six wellness tracking modules with Cloud Firestore, Google Sheets, or your Spring Boot backend.
+              Create an account or sign in with email and password to sync your six wellness tracking modules with Cloud Firestore.
             </p>
             <div className="flex flex-wrap gap-3 pt-1">
               <SecondaryButton
                 to={isAuthenticated ? '/dashboard' : '/register'}
                 variant="gold"
               >
-                <span>Begin Your Journey</span>
+                <span>{isAuthenticated ? 'Open Dashboard' : 'Begin Your Journey'}</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </SecondaryButton>
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center min-h-[42px] px-5 py-2.5 rounded-[12px] border border-white/35 text-white font-semibold text-sm hover:bg-white/10 transition-colors whitespace-nowrap"
-              >
-                Sign In
-              </Link>
+              {!isAuthenticated && (
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center min-h-[42px] px-5 py-2.5 rounded-[12px] border border-white/35 text-white font-semibold text-sm hover:bg-white/10 transition-colors whitespace-nowrap"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </section>
 

@@ -225,7 +225,7 @@ export function NutritionPage() {
 
       <ApiIntegrationBanner
         error={apiError}
-        expectedEndpoint={`GET /api/nutrition?date=${selectedDate}`}
+        expectedEndpoint={`Cloud Firestore · nutrition (${selectedDate})`}
         onRetry={loadNutrition}
         retrying={loading}
       />
@@ -338,7 +338,7 @@ export function NutritionPage() {
                 Add food
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                Pick a common food to fill the fields, or enter custom nutrition values (POST /api/nutrition).
+                Pick a common food to fill the fields, or enter custom nutrition values to save to Cloud Firestore.
               </p>
             </header>
 
@@ -535,7 +535,7 @@ export function NutritionPage() {
                 Last 7 days
               </h2>
               <p className="text-xs text-[var(--muted)] mt-0.5">
-                Calories logged from GET /api/nutrition. Dashed line marks your target.
+                Calories logged over the last 7 days. Dashed line marks your target.
               </p>
             </header>
 
@@ -601,8 +601,7 @@ export function NutritionPage() {
             ) : (
               <EmptyStateCard
                 title="No meal history yet"
-                description="Past daily totals from GET /api/nutrition will appear here once logged."
-                endpoint="GET /api/nutrition"
+                description="Past daily totals will appear here once meals are logged."
               />
             )}
           </section>

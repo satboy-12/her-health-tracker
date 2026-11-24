@@ -6,7 +6,6 @@ import {
   BookOpen,
   CalendarDays,
   Droplets,
-  FileSpreadsheet,
   LayoutGrid,
   Lock,
   LogOut,
@@ -19,7 +18,6 @@ import {
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { useAuth } from '../context/AuthContext';
-import { getApiBaseUrl } from '../api/client';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Today', icon: LayoutGrid, accent: '#C5A66B' },
@@ -29,7 +27,6 @@ const NAV_ITEMS = [
   { to: '/nutrition', label: 'Nutrition', icon: Utensils, accent: '#D8AA65' },
   { to: '/water', label: 'Water', icon: Droplets, accent: '#70B8C8' },
   { to: '/journal', label: 'Journal', icon: BookOpen, accent: '#D4B98A' },
-  { to: '/sheets', label: 'Google Sheets', icon: FileSpreadsheet, accent: '#27836A' },
   { to: '/profile', label: 'Profile', icon: UserCircle, accent: '#E4D2A5' },
 ];
 
@@ -45,7 +42,7 @@ const MOBILE_SHEET_ITEMS = NAV_ITEMS.filter(
 );
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, authProvider, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
@@ -57,7 +54,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     navigate('/login');
   };
 
-  const baseUrl = getApiBaseUrl();
   const inMoreRoute = MOBILE_SHEET_ITEMS.some((i) => i.to === location.pathname);
 
   return (
@@ -117,8 +113,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Lock className="w-4 h-4 shrink-0 mt-0.5 text-[#C5A66B]" aria-hidden="true" />
                 <span>
                   {user
-                    ? `Signed in (${user.fullName}). Firebase RTDB synced.`
-                    : 'Firebase Realtime Sync active.'}
+                    ? `Signed in (${user.fullName}). Cloud Firestore active.`
+                    : 'Firebase Authentication required.'}
                 </span>
               </p>
 
@@ -150,7 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-2 ml-auto relative">
                 <button
                   type="button"
-                  aria-label="API connection and reminders overview"
+                  aria-label="Firebase connection and account overview"
                   aria-expanded={statusPopoverOpen}
                   onClick={() => setStatusPopoverOpen((prev) => !prev)}
                   className="w-9 h-9 rounded-[12px] border border-[var(--border-strong)] bg-[var(--surface)] hover:bg-[var(--surface2)] text-[var(--muted)] hover:text-[var(--ink)] inline-flex items-center justify-center transition-colors cursor-pointer"
@@ -169,12 +165,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {statusPopoverOpen && (
                   <div
                     role="region"
-                    aria-label="Backend integration status"
+                    aria-label="Firebase integration status"
                     className="absolute right-0 top-11 w-80 max-w-[calc(100vw-32px)] hhj-card p-4 z-50"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-bold text-[var(--ink)]">
-                        API &amp; Session Status
+                        Firebase Session Status
                       </span>
                       <button
                         type="button"
@@ -187,18 +183,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                     <div className="text-xs text-[var(--muted)] space-y-2">
                       <p>
-                        <span className="font-semibold text-[var(--ink)]">Session:</span>{' '}
-                        {user ? `Firebase Auth (${user.email})` : 'Active'}
+                        <span className="font-semibold text-[var(--ink)]">Account:</span>{' '}
+                        {user ? `${user.email}` : 'Signed out'}
                       </p>
                       <p className="break-all">
-                        <span className="font-semibold text-[var(--ink)]">Firebase Project:</span>{' '}
+                        <span className="font-semibold text-[var(--ink)]">Database:</span>{' '}
                         <code className="font-mono text-[var(--plum)]">
-                          gen-lang-client-0665837098
+                          Cloud Firestore (Owner-Isolated)
                         </code>
-                      </p>
-                      <p className="break-all">
-                        <span className="font-semibold text-[var(--ink)]">Realtime DB:</span>{' '}
-                        <span className="text-[var(--brand-jade)] font-medium">Connected</span>
                       </p>
                       <div className="pt-2 border-t border-[var(--line)] flex justify-between items-center">
                         <Link
@@ -213,7 +205,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           onClick={() => void handleSignOut()}
                           className="text-[var(--muted)] hover:text-[var(--ink)] font-semibold cursor-pointer"
                         >
-                          {user ? 'Log out' : 'Go to Login'}
+                          Sign Out
                         </button>
                       </div>
                     </div>

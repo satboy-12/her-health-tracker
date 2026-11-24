@@ -200,7 +200,7 @@ export function DashboardPage() {
 
       <ErrorState
         error={apiError}
-        expectedEndpoint="GET /api/dashboard"
+        expectedEndpoint="Cloud Firestore · dashboard"
         onRetry={loadDashboard}
         retrying={loading}
       />
@@ -310,7 +310,7 @@ export function DashboardPage() {
                             ? `${summary.cycleSummary.averageCycleLength} days`
                             : '—'}
                           <span className="block text-xs font-medium text-[var(--muted)]">
-                            From API history
+                            From cycle history
                           </span>
                         </dd>
                       </div>
@@ -330,7 +330,7 @@ export function DashboardPage() {
                       <span>Start with your last period</span>
                     </h2>
                     <p className="text-sm text-[var(--muted)] mt-1.5 leading-relaxed">
-                      Log period dates via Period Tracker so your Spring Boot backend can compute your cycle day, phase, and estimated next period.
+                      Log period dates via Period Tracker so your dashboard can compute your cycle day, phase, and estimated next period.
                     </p>
                   </div>
                 )}
@@ -399,7 +399,7 @@ export function DashboardPage() {
               subtitle={
                 waterTarget > 0
                   ? `${waterPercent}% of ${waterTarget} ml goal`
-                  : 'Target awaiting /api/water'
+                  : 'Set your daily hydration target'
               }
               accentColor="var(--module-water)"
               icon={<Droplets className="w-5 h-5 text-[var(--module-water)] shrink-0" aria-hidden="true" />}
@@ -491,7 +491,7 @@ export function DashboardPage() {
             <DashboardCard
               title="Nutrition"
               subtitle={
-                kcalTarget > 0 ? `Target ${kcalTarget} kcal` : 'Target awaiting /api/nutrition'
+                kcalTarget > 0 ? `Target ${kcalTarget} kcal` : 'Daily nutrition summary'
               }
               accentColor="var(--module-nutrition)"
               icon={<Utensils className="w-5 h-5 text-[var(--module-nutrition)] shrink-0" aria-hidden="true" />}
@@ -527,7 +527,7 @@ export function DashboardPage() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             <DashboardCard
               title="Cycle lengths"
-              subtitle="Historical cycle days returned by /api/dashboard. Dashed line marks average."
+              subtitle="Historical cycle days from your saved records. Dashed line marks average."
               accentColor="var(--module-period)"
             >
               {cycleHistory.length > 0 ? (
@@ -590,15 +590,14 @@ export function DashboardPage() {
               ) : (
                 <EmptyState
                   title="No Cycle Chart Data Yet"
-                  description="Log at least two periods on your Spring Boot backend to render your cycle length chart."
-                  endpoint="GET /api/dashboard"
+                  description="Log at least two periods in Period Tracker to render your cycle length chart."
                 />
               )}
             </DashboardCard>
 
             <DashboardCard
               title="Insights"
-              subtitle="Derived directly from your logged API records"
+              subtitle="Derived directly from your Cloud Firestore records"
               accentColor="var(--brand-champagne)"
             >
               {derivedInsights.length > 0 ? (
@@ -616,8 +615,7 @@ export function DashboardPage() {
               ) : (
                 <EmptyState
                   title="Insights appear as you log"
-                  description="Connect your Spring Boot API and record period, mood, or symptom entries to surface personal insights here."
-                  endpoint="GET /api/dashboard"
+                  description="Record period, mood, or symptom entries to surface personal insights here."
                 />
               )}
             </DashboardCard>
@@ -654,7 +652,6 @@ export function DashboardPage() {
               <EmptyState
                 title="No journal entries loaded yet"
                 description="Write reflections, symptom notes, or questions for your care team in Health Journal."
-                endpoint="GET /api/journal"
                 actionLabel="Write your first entry"
                 onAction={() => navigate('/journal')}
               />
